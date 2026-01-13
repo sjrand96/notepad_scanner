@@ -1,0 +1,6 @@
+openai
+opencv-python
+opencv-contrib-python
+Pillow
+python-dotenv
+requests

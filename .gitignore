@@ -1,3 +1,10 @@
+# Input and Ouput Images
+aruco/**/*.jpg
+images/*.jpg
+
+# Virtual Environment
+notebook_scanner_venv/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
