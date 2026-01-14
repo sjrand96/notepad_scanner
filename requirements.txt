@@ -1,5 +1,6 @@
 openai
 opencv-python
+matplotlib
 opencv-contrib-python
 Pillow
 python-dotenv
