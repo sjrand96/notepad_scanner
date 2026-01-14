@@ -6,7 +6,7 @@ import base64
 from datetime import datetime
 from openai import OpenAI
 from cost_calculator import ImageAnalysisCostCalculator
-from notion_example import create_page_with_bulleted_list
+from experiments.notion_example import create_page_with_bulleted_list
 
 # Initialize OpenAI client
 client = OpenAI()

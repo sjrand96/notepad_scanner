@@ -335,6 +335,19 @@ def main():
         print(f"  Camera may not support {CAPTURE_WIDTH}x{CAPTURE_HEIGHT} resolution.")
         print(f"  Using actual resolution: {capture_width}x{capture_height}")
     
+    # Calculate preview dimensions maintaining aspect ratio (long edge = PREVIEW_WIDTH)
+    camera_aspect = capture_width / capture_height
+    if capture_width >= capture_height:
+        # Width is the long edge
+        preview_width = PREVIEW_WIDTH
+        preview_height = int(PREVIEW_WIDTH / camera_aspect)
+    else:
+        # Height is the long edge
+        preview_height = PREVIEW_WIDTH
+        preview_width = int(PREVIEW_WIDTH * camera_aspect)
+    
+    print(f"Preview resolution (maintaining aspect ratio): {preview_width}x{preview_height}")
+    
     # Setup ArUco detection
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     try:
@@ -361,8 +374,8 @@ def main():
                     print("Error: Failed to read frame")
                     break
                 
-                # Scale down for preview (720p) for better performance
-                preview_frame = cv2.resize(frame, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
+                # Scale down for preview (maintaining aspect ratio, long edge = PREVIEW_WIDTH)
+                preview_frame = cv2.resize(frame, (preview_width, preview_height))
                 
                 # Detect ArUco markers on preview frame (lightweight for performance)
                 corners, ids, annotated_frame = detect_aruco_live(preview_frame, aruco_dict, aruco_params)

@@ -1,7 +1,7 @@
 import os
 import unittest
 from dotenv import load_dotenv
-from notion_example import (
+from experiments.notion_example import (
     create_page_with_bulleted_list,
     parse_markdown_to_notion_blocks,
     NOTION_TOKEN,
