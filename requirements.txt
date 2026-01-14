@@ -5,3 +5,5 @@ opencv-contrib-python
 Pillow
 python-dotenv
 requests
+flask
+flask-cors
