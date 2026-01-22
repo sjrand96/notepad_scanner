@@ -1,0 +1,525 @@
+/* Horizontal Layout Optimized for 1280x720 Touchscreen */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --bg-dark: #0f0f0f;
+    --bg-card: #1a1a1a;
+    --bg-hover: #2a2a2a;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent-spencer: linear-gradient(135deg, #4ade80 0%, #22d3ee 100%);
+    --accent-celeste: linear-gradient(135deg, #3b82f6 0%, #a855f7 100%);
+    --accent-capture: #3b82f6;
+    --accent-success: #10b981;
+    --accent-danger: #ef4444;
+    --accent-warning: #f59e0b;
+}
+
+body {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    touch-action: manipulation;
+    cursor: default; /* Show cursor for now (testing) */
+}
+
+.screen {
+    display: none;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* ============= USER SELECTION SCREEN ============= */
+.user-selection-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    gap: 60px;
+}
+
+.main-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #4ade80, #3b82f6, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.user-buttons-horizontal {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+}
+
+.user-button-horizontal {
+    width: 320px;
+    height: 240px;
+    background: var(--bg-card);
+    border: 3px solid #333;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+}
+
+.user-button-horizontal[data-user-id="spencer"] {
+    background: var(--accent-spencer);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.user-button-horizontal[data-user-id="celeste"] {
+    background: var(--accent-celeste);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.user-button-horizontal:active {
+    transform: scale(0.96);
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+}
+
+.user-icon {
+    font-size: 5rem;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.user-name {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ============= CAPTURE SCREEN ============= */
+.split-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* Left: Preview (70%) */
+.preview-section {
+    width: 70%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.preview-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+}
+
+.marker-indicator {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 2px solid rgba(59, 130, 246, 0.3);
+}
+
+.marker-indicator.has-markers {
+    border-color: var(--accent-success);
+    background: rgba(16, 185, 129, 0.2);
+}
+
+.marker-icon {
+    font-size: 1.8rem;
+}
+
+#marker-count {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-success);
+}
+
+.marker-label {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Right: Controls (30%) */
+.controls-section {
+    width: 30%;
+    height: 100%;
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    padding: 40px 30px;
+    gap: 30px;
+}
+
+.status-panel {
+    flex: 0 0 auto;
+}
+
+.page-count-display {
+    background: var(--bg-dark);
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    border: 2px solid #333;
+}
+
+.page-count-number {
+    font-size: 5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4ade80, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.page-count-label {
+    font-size: 1.4rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    letter-spacing: 2px;
+    font-weight: 600;
+}
+
+.action-buttons {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: center;
+}
+
+.btn-action {
+    height: 140px;
+    border: none;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-action:active {
+    transform: scale(0.96);
+}
+
+.btn-icon {
+    font-size: 3rem;
+}
+
+.btn-capture {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    flex: 2;
+}
+
+.btn-capture:active {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+}
+
+.btn-done {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.btn-done:active {
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+.btn-done:disabled {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+}
+
+/* ============= REVIEW SCREEN ============= */
+.review-layout {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 30px 40px;
+}
+
+.review-title {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+.review-grid-horizontal {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding: 10px;
+}
+
+.review-item {
+    background: var(--bg-card);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid #333;
+    transition: all 0.2s;
+    aspect-ratio: 3/4;
+}
+
+.review-item:hover {
+    border-color: var(--accent-capture);
+}
+
+.review-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.review-item .page-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.review-controls-horizontal {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 20px;
+}
+
+.btn-review {
+    flex: 1;
+    height: 80px;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-review:active {
+    transform: scale(0.98);
+}
+
+.btn-process {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.btn-process:active {
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+.btn-cancel {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.btn-cancel:active {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+/* ============= PROCESSING SCREEN ============= */
+.processing-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+}
+
+.spinner-large {
+    width: 100px;
+    height: 100px;
+    border: 8px solid #333;
+    border-top-color: var(--accent-capture);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.processing-text {
+    font-size: 2rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-weight: 600;
+}
+
+/* ============= SUCCESS SCREEN ============= */
+.success-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+}
+
+.success-icon {
+    font-size: 8rem;
+    color: var(--accent-success);
+    animation: successPop 0.5s ease-out;
+}
+
+@keyframes successPop {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.success-text {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.success-details {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ============= ERROR SCREEN ============= */
+.error-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    padding: 60px;
+}
+
+.error-icon {
+    font-size: 6rem;
+    color: var(--accent-danger);
+}
+
+.error-title {
+    font-size: 3rem;
+    font-weight: 700;
+}
+
+.error-message {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 800px;
+    line-height: 1.6;
+}
+
+.btn-error-ok {
+    width: 300px;
+    height: 80px;
+    background: var(--accent-capture);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    touch-action: manipulation;
+}
+
+.btn-error-ok:active {
+    transform: scale(0.96);
+    background: #2563eb;
+}
+
+/* ============= SCROLLBAR STYLING ============= */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

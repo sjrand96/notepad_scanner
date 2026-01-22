@@ -79,6 +79,20 @@ class App {
                 const data = await API.getPreview(this.sessionId);
                 const img = document.getElementById('preview-image');
                 img.src = data.image;
+                
+                // Update marker count if element exists (horizontal layout)
+                const markerCount = document.getElementById('marker-count');
+                const markerIndicator = document.getElementById('marker-indicator');
+                if (markerCount && data.marker_count !== undefined) {
+                    markerCount.textContent = data.marker_count;
+                    if (markerIndicator) {
+                        if (data.marker_count >= 4) {
+                            markerIndicator.classList.add('has-markers');
+                        } else {
+                            markerIndicator.classList.remove('has-markers');
+                        }
+                    }
+                }
             } catch (error) {
                 console.error('Preview error:', error);
             }
@@ -113,8 +127,18 @@ class App {
     }
 
     updatePageCounter() {
-        document.getElementById('page-counter').textContent = 
-            `${this.capturedCount} page${this.capturedCount !== 1 ? 's' : ''} captured`;
+        // Update text version (vertical layout)
+        const counterText = document.getElementById('page-counter');
+        if (counterText) {
+            counterText.textContent = 
+                `${this.capturedCount} page${this.capturedCount !== 1 ? 's' : ''} captured`;
+        }
+        
+        // Update number version (horizontal layout)
+        const counterNum = document.getElementById('page-counter-num');
+        if (counterNum) {
+            counterNum.textContent = this.capturedCount;
+        }
     }
 
     async done() {
@@ -190,13 +214,27 @@ class App {
                 return;
             }
             
-            document.getElementById('processing-progress').textContent = 
-                `Successfully processed ${data.success_count} of ${data.total_count} pages`;
-            
-            setTimeout(() => {
-                this.endSession();
-                this.showScreen('user-selection-screen');
-            }, 2000);
+            // Show success message
+            const successDetails = document.getElementById('success-details');
+            if (successDetails) {
+                successDetails.textContent = 
+                    `${data.success_count} of ${data.total_count} pages processed`;
+                this.showScreen('success-screen');
+                
+                setTimeout(() => {
+                    this.endSession();
+                    this.showScreen('user-selection-screen');
+                }, 3000);
+            } else {
+                // Fallback for old layout
+                document.getElementById('processing-progress').textContent = 
+                    `Successfully processed ${data.success_count} of ${data.total_count} pages`;
+                
+                setTimeout(() => {
+                    this.endSession();
+                    this.showScreen('user-selection-screen');
+                }, 2000);
+            }
         } catch (error) {
             console.error('Process error:', error);
             this.showError('Failed to process: ' + error.message);

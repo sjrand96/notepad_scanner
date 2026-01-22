@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Notepad Scanner</title>
+    <link rel="stylesheet" href="css/touchscreen.css">
+</head>
+<body>
+    <!-- User Selection Screen -->
+    <div id="user-selection-screen" class="screen active">
+        <h1>Select User</h1>
+        <div class="user-buttons">
+            <button class="user-button" data-user-id="spencer">
+                <span class="user-name">Spencer</span>
+            </button>
+            <button class="user-button" data-user-id="celeste">
+                <span class="user-name">Celeste</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Capture Screen -->
+    <div id="capture-screen" class="screen">
+        <div class="capture-header">
+            <span id="page-counter">0 pages captured</span>
+            <button id="done-button" class="btn btn-secondary">Done</button>
+        </div>
+        <div class="preview-container">
+            <img id="preview-image" src="" alt="Camera preview">
+        </div>
+        <div class="capture-controls">
+            <button id="capture-button" class="btn btn-primary btn-large">Capture</button>
+        </div>
+    </div>
+
+    <!-- Review Screen -->
+    <div id="review-screen" class="screen">
+        <h1>Review Pages</h1>
+        <div id="review-grid" class="review-grid">
+            <!-- Images will be inserted here -->
+        </div>
+        <div class="review-controls">
+            <button id="process-button" class="btn btn-success btn-large">Process All Pages</button>
+            <button id="cancel-button" class="btn btn-danger btn-large">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Processing Screen -->
+    <div id="processing-screen" class="screen">
+        <h1>Processing...</h1>
+        <div class="processing-content">
+            <div id="processing-progress" class="progress-text">Processing page 1...</div>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="error-screen" class="screen">
+        <h1>Error</h1>
+        <div id="error-message" class="error-message"></div>
+        <button id="error-ok-button" class="btn btn-primary">OK</button>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

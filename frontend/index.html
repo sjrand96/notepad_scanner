@@ -2,64 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Notepad Scanner</title>
-    <link rel="stylesheet" href="css/touchscreen.css">
+    <link rel="stylesheet" href="css/horizontal.css">
 </head>
 <body>
     <!-- User Selection Screen -->
     <div id="user-selection-screen" class="screen active">
-        <h1>Select User</h1>
-        <div class="user-buttons">
-            <button class="user-button" data-user-id="spencer">
-                <span class="user-name">Spencer</span>
-            </button>
-            <button class="user-button" data-user-id="celeste">
-                <span class="user-name">Celeste</span>
-            </button>
+        <div class="user-selection-container">
+            <h1 class="main-title">NOTEPAD SCANNER</h1>
+            <div class="user-buttons-horizontal">
+                <button class="user-button user-button-horizontal" data-user-id="spencer">
+                    <div class="user-icon">👤</div>
+                    <span class="user-name">Spencer</span>
+                </button>
+                <button class="user-button user-button-horizontal" data-user-id="celeste">
+                    <div class="user-icon">👤</div>
+                    <span class="user-name">Celeste</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Capture Screen -->
     <div id="capture-screen" class="screen">
-        <div class="capture-header">
-            <span id="page-counter">0 pages captured</span>
-            <button id="done-button" class="btn btn-secondary">Done</button>
-        </div>
-        <div class="preview-container">
-            <img id="preview-image" src="" alt="Camera preview">
-        </div>
-        <div class="capture-controls">
-            <button id="capture-button" class="btn btn-primary btn-large">Capture</button>
+        <div class="split-layout">
+            <!-- Left: Camera Preview (70%) -->
+            <div class="preview-section">
+                <div class="preview-wrapper">
+                    <img id="preview-image" src="" alt="Camera preview">
+                    <div class="preview-overlay">
+                        <div class="marker-indicator" id="marker-indicator">
+                            <span class="marker-icon">📍</span>
+                            <span id="marker-count">0</span>
+                            <span class="marker-label">markers</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right: Controls (30%) -->
+            <div class="controls-section">
+                <div class="status-panel">
+                    <div class="page-count-display">
+                        <div class="page-count-number" id="page-counter-num">0</div>
+                        <div class="page-count-label">PAGES</div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="capture-button" class="btn-action btn-capture">
+                        <span class="btn-icon">📸</span>
+                        <span class="btn-text">CAPTURE</span>
+                    </button>
+                    
+                    <button id="done-button" class="btn-action btn-done">
+                        <span class="btn-icon">✓</span>
+                        <span class="btn-text">DONE</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Review Screen -->
     <div id="review-screen" class="screen">
-        <h1>Review Pages</h1>
-        <div id="review-grid" class="review-grid">
-            <!-- Images will be inserted here -->
-        </div>
-        <div class="review-controls">
-            <button id="process-button" class="btn btn-success btn-large">Process All Pages</button>
-            <button id="cancel-button" class="btn btn-danger btn-large">Cancel</button>
+        <div class="review-layout">
+            <h2 class="review-title">REVIEW CAPTURED PAGES</h2>
+            <div id="review-grid" class="review-grid-horizontal">
+                <!-- Images will be inserted here -->
+            </div>
+            <div class="review-controls-horizontal">
+                <button id="process-button" class="btn-review btn-process">
+                    <span class="btn-icon">🚀</span>
+                    <span>PROCESS ALL PAGES</span>
+                </button>
+                <button id="cancel-button" class="btn-review btn-cancel">
+                    <span class="btn-icon">✕</span>
+                    <span>CANCEL</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Processing Screen -->
     <div id="processing-screen" class="screen">
-        <h1>Processing...</h1>
-        <div class="processing-content">
-            <div id="processing-progress" class="progress-text">Processing page 1...</div>
-            <div class="spinner"></div>
+        <div class="processing-container">
+            <div class="spinner-large"></div>
+            <div id="processing-progress" class="processing-text">Processing...</div>
+        </div>
+    </div>
+
+    <!-- Success Screen -->
+    <div id="success-screen" class="screen">
+        <div class="success-container">
+            <div class="success-icon">✓</div>
+            <div class="success-text">Successfully uploaded to Notion!</div>
+            <div id="success-details" class="success-details"></div>
         </div>
     </div>
 
     <!-- Error Screen -->
     <div id="error-screen" class="screen">
-        <h1>Error</h1>
-        <div id="error-message" class="error-message"></div>
-        <button id="error-ok-button" class="btn btn-primary">OK</button>
+        <div class="error-container">
+            <div class="error-icon">⚠</div>
+            <h2 class="error-title">Error</h2>
+            <div id="error-message" class="error-message"></div>
+            <button id="error-ok-button" class="btn-error-ok">OK</button>
+        </div>
     </div>
 
     <script src="js/api.js"></script>
