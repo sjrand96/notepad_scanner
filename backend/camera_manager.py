@@ -4,7 +4,18 @@ Camera manager singleton for handling camera access.
 import cv2
 import threading
 import time
+import logging
 from backend.config import CAPTURE_WIDTH, CAPTURE_HEIGHT, PREVIEW_WIDTH
+
+# Set up logger
+logger = logging.getLogger('notepad_scanner')
+if not logger.handlers:
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    logger.setLevel(logging.INFO)
 
 
 class CameraManager:
@@ -31,6 +42,8 @@ class CameraManager:
         self.capture_height = CAPTURE_HEIGHT
         self.preview_width = PREVIEW_WIDTH
         self._last_release_time = 0
+        self._last_init_attempt = 0
+        self._init_cooldown = 2.0  # Seconds between initialization attempts
         self._initialized = True
     
     def initialize(self, force=False):
@@ -42,8 +55,17 @@ class CameraManager:
         if self.is_initialized and not force:
             return True
         
+        # Enforce cooldown between initialization attempts to prevent flooding
+        current_time = time.time()
+        time_since_last_attempt = current_time - self._last_init_attempt
+        if time_since_last_attempt < self._init_cooldown and not force:
+            # Too soon to retry
+            return False
+        
+        self._last_init_attempt = current_time
+        
         # If camera was recently released, wait a bit for hardware to reset
-        time_since_release = time.time() - self._last_release_time
+        time_since_release = current_time - self._last_release_time
         if time_since_release < 0.5:  # Wait at least 500ms after release
             time.sleep(0.5 - time_since_release)
         
@@ -57,9 +79,11 @@ class CameraManager:
         # Suppress OpenCV warnings temporarily
         os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
         
+        logger.info("📷 Initializing camera...")
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
             self.is_initialized = False
+            logger.warning("❌ Camera initialization failed")
             return False
         
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.capture_width)
@@ -72,6 +96,7 @@ class CameraManager:
         self.capture_height = actual_height
         self.is_initialized = True
         
+        logger.info(f"✅ Camera initialized: {actual_width}x{actual_height}")
         return True
     
     def read_frame(self):
@@ -87,6 +112,7 @@ class CameraManager:
     def release(self):
         """Release camera resources."""
         if self.cap is not None:
+            logger.info("🔒 Releasing camera")
             self.cap.release()
             self.cap = None
             self.is_initialized = False

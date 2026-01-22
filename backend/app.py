@@ -43,9 +43,20 @@ os.environ['OPENCV_VIDEOIO_DEBUG'] = '0'
 sessions = {}
 session_lock = threading.Lock()
 
+# Processing state tracker to prevent camera re-init during upload
+processing_sessions = set()
+processing_lock = threading.Lock()
+
 # Custom logger for important events only
 logger = logging.getLogger('notepad_scanner')
 logger.setLevel(logging.INFO)
+# Add console handler if not already present
+if not logger.handlers:
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
 
 def get_session(session_id):
@@ -145,11 +156,17 @@ def api_preview():
     if not session_id:
         return jsonify({"error": "session_id required"}), 400
     
+    # Don't try to use camera if session is being processed
+    with processing_lock:
+        if session_id in processing_sessions:
+            return jsonify({"error": "Processing in progress", "code": "PROCESSING"}), 503
+    
     camera = CameraManager()
     
-    # Try to initialize camera if needed (with timeout to prevent flooding)
+    # Try to initialize camera if needed (with cooldown to prevent flooding)
     if not camera.is_initialized:
         # Try to initialize, but fail fast if it doesn't work
+        # Cooldown is enforced in camera.initialize()
         if not camera.initialize():
             # Return error without logging - frontend will handle
             return jsonify({"error": "Camera not available", "code": "CAMERA_NOT_READY"}), 503
@@ -209,6 +226,8 @@ def api_capture():
     
     session["captured_frames"].append(frame_bytes)
     set_session(session_id, session)
+    
+    logger.info(f"📸 Captured page {len(session['captured_frames'])}")
     
     return jsonify({
         "success": True,
@@ -295,91 +314,101 @@ def api_process():
     if not session:
         return jsonify({"error": "Session not found"}), 404
     
-    database_id = session.get("notion_database_id")
-    if not database_id:
-        return jsonify({"error": "Notion database ID not configured for user"}), 400
+    # Mark session as processing to prevent camera re-init
+    with processing_lock:
+        processing_sessions.add(session_id)
     
-    notion_token = session.get("notion_token")
-    if not notion_token:
-        return jsonify({"error": "Notion token not configured for user"}), 400
-    
-    cropped_images = session.get("cropped_images", [])
-    if len(cropped_images) == 0:
-        return jsonify({"error": "No images to process"}), 400
-    
-    # Ensure output directories exist
-    os.makedirs(CROPPED_OUTPUT_DIR, exist_ok=True)
-    
-    results = []
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    for idx, img_base64 in enumerate(cropped_images):
-        if img_base64 is None:
-            error_msg = "Invalid image"
-            logger.error(f"Page {idx + 1}: {error_msg}")
-            results.append({"success": False, "error": error_msg})
-            continue
+    try:
+        database_id = session.get("notion_database_id")
+        if not database_id:
+            return jsonify({"error": "Notion database ID not configured for user"}), 400
         
-        try:
-            # Decode base64 image
-            header, encoded = img_base64.split(',', 1)
-            image_data = base64.b64decode(encoded)
-            nparr = np.frombuffer(image_data, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        notion_token = session.get("notion_token")
+        if not notion_token:
+            return jsonify({"error": "Notion token not configured for user"}), 400
+        
+        cropped_images = session.get("cropped_images", [])
+        if len(cropped_images) == 0:
+            return jsonify({"error": "No images to process"}), 400
+        
+        # Release camera before starting processing
+        camera = CameraManager()
+        camera.release()
+        
+        logger.info(f"🚀 Starting processing of {len(cropped_images)} page(s)")
+        
+        # Ensure output directories exist
+        os.makedirs(CROPPED_OUTPUT_DIR, exist_ok=True)
+        
+        results = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        for idx, img_base64 in enumerate(cropped_images):
+            if img_base64 is None:
+                error_msg = "Invalid image"
+                logger.error(f"❌ Page {idx + 1}: {error_msg}")
+                results.append({"success": False, "error": error_msg})
+                continue
             
-            if img is None:
-                raise ValueError("Failed to decode image")
-            
-            # Save cropped image
-            output_path = os.path.join(CROPPED_OUTPUT_DIR, f"aruco_cropped_{timestamp}_p{idx+1}.jpg")
-            cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 95])
-            logger.info(f"Page {idx + 1}: Saved image")
-            
-            # Scan with OpenAI
-            logger.info(f"Page {idx + 1}: Scanning with OpenAI...")
-            bulleted_text = scan_image_to_text(output_path, PROMPT_PATH)
-            logger.info(f"Page {idx + 1}: OpenAI scan completed")
-            
-            # Create Notion page with image
-            page_title = format_datetime_title()
-            logger.info(f"Page {idx + 1}: Creating Notion page '{page_title}'")
-            result = create_page_with_bulleted_list(
-                database_id=database_id,
-                title=page_title,
-                bulleted_text=bulleted_text,
-                notion_token=notion_token,
-                image_path=output_path
-            )
-            logger.info(f"Page {idx + 1}: Created Notion page {result.get('id')}")
-            
-            results.append({
-                "success": True,
-                "page_number": idx + 1,
-                "notion_page_id": result.get("id")
-            })
-        except Exception as e:
-            error_msg = f"{type(e).__name__}: {str(e)}"
-            logger.error(f"Page {idx + 1}: {error_msg}", exc_info=True)
-            results.append({
-                "success": False,
-                "page_number": idx + 1,
-                "error": error_msg
-            })
-    
-    # Clear session after processing
-    clear_session(session_id)
-    
-    # Release camera
-    camera = CameraManager()
-    camera.release()
-    
-    success_count = sum(1 for r in results if r.get("success"))
-    
-    return jsonify({
-        "results": results,
-        "success_count": success_count,
-        "total_count": len(results)
-    })
+            try:
+                # Decode base64 image
+                header, encoded = img_base64.split(',', 1)
+                image_data = base64.b64decode(encoded)
+                nparr = np.frombuffer(image_data, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                
+                if img is None:
+                    raise ValueError("Failed to decode image")
+                
+                # Save cropped image
+                output_path = os.path.join(CROPPED_OUTPUT_DIR, f"aruco_cropped_{timestamp}_p{idx+1}.jpg")
+                cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                
+                # Scan with OpenAI
+                logger.info(f"🤖 Page {idx + 1}/{len(cropped_images)}: Scanning with OpenAI...")
+                bulleted_text = scan_image_to_text(output_path, PROMPT_PATH)
+                
+                # Create Notion page with image
+                page_title = format_datetime_title()
+                logger.info(f"📤 Page {idx + 1}/{len(cropped_images)}: Uploading to Notion...")
+                result = create_page_with_bulleted_list(
+                    database_id=database_id,
+                    title=page_title,
+                    bulleted_text=bulleted_text,
+                    notion_token=notion_token,
+                    image_path=output_path
+                )
+                logger.info(f"✅ Page {idx + 1}/{len(cropped_images)}: Upload complete")
+                
+                results.append({
+                    "success": True,
+                    "page_number": idx + 1,
+                    "notion_page_id": result.get("id")
+                })
+            except Exception as e:
+                error_msg = f"{type(e).__name__}: {str(e)}"
+                logger.error(f"❌ Page {idx + 1}/{len(cropped_images)}: {error_msg}", exc_info=True)
+                results.append({
+                    "success": False,
+                    "page_number": idx + 1,
+                    "error": error_msg
+                })
+        
+        # Clear session after processing
+        clear_session(session_id)
+        
+        success_count = sum(1 for r in results if r.get("success"))
+        logger.info(f"🎉 Processing complete: {success_count}/{len(results)} successful")
+        
+        return jsonify({
+            "results": results,
+            "success_count": success_count,
+            "total_count": len(results)
+        })
+    finally:
+        # Remove from processing sessions
+        with processing_lock:
+            processing_sessions.discard(session_id)
 
 
 @app.route('/api/session/<session_id>', methods=['DELETE'])
@@ -389,9 +418,14 @@ def api_end_session(session_id):
     if session:
         clear_session(session_id)
     
+    # Remove from processing sessions if present
+    with processing_lock:
+        processing_sessions.discard(session_id)
+    
     camera = CameraManager()
     camera.release()
     
+    logger.info("🔚 Session ended")
     return jsonify({"success": True})
 
 
