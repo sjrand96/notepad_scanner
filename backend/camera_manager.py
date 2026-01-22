@@ -3,6 +3,7 @@ Camera manager singleton for handling camera access.
 """
 import cv2
 import threading
+import time
 from backend.config import CAPTURE_WIDTH, CAPTURE_HEIGHT, PREVIEW_WIDTH
 
 
@@ -29,15 +30,36 @@ class CameraManager:
         self.capture_width = CAPTURE_WIDTH
         self.capture_height = CAPTURE_HEIGHT
         self.preview_width = PREVIEW_WIDTH
+        self._last_release_time = 0
         self._initialized = True
     
-    def initialize(self):
-        """Initialize camera."""
-        if self.is_initialized:
+    def initialize(self, force=False):
+        """Initialize camera.
+        
+        Args:
+            force: If True, reinitialize even if already initialized
+        """
+        if self.is_initialized and not force:
             return True
+        
+        # If camera was recently released, wait a bit for hardware to reset
+        time_since_release = time.time() - self._last_release_time
+        if time_since_release < 0.5:  # Wait at least 500ms after release
+            time.sleep(0.5 - time_since_release)
+        
+        # Release existing camera if any
+        if self.cap is not None:
+            self.cap.release()
+            time.sleep(0.1)  # Brief pause for hardware cleanup
+        
+        # Try to open camera with reduced verbosity
+        import os
+        # Suppress OpenCV warnings temporarily
+        os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
         
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
+            self.is_initialized = False
             return False
         
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.capture_width)
@@ -68,6 +90,7 @@ class CameraManager:
             self.cap.release()
             self.cap = None
             self.is_initialized = False
+            self._last_release_time = time.time()
     
     def get_preview_size(self):
         """Calculate preview dimensions maintaining aspect ratio."""

@@ -6,6 +6,7 @@ import numpy as np
 import base64
 import json
 import threading
+import logging
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -30,9 +31,21 @@ from backend.user_manager import get_user, list_users
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
 
+# Configure logging to reduce noise from frequent GET requests
+# Only log warnings and errors from werkzeug (Flask's HTTP logger)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
+# Suppress OpenCV warnings globally
+os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
+os.environ['OPENCV_VIDEOIO_DEBUG'] = '0'
+
 # Session storage (in production, use Redis or database)
 sessions = {}
 session_lock = threading.Lock()
+
+# Custom logger for important events only
+logger = logging.getLogger('notepad_scanner')
+logger.setLevel(logging.INFO)
 
 
 def get_session(session_id):
@@ -118,8 +131,10 @@ def api_start_session():
     # Initialize camera
     camera = CameraManager()
     if not camera.initialize():
+        logger.warning("Camera initialization failed on session start")
         return jsonify({"error": "Failed to initialize camera"}), 500
     
+    logger.info(f"Session started for user {user.get('name')}")
     return jsonify({"session_id": session_id, "user": user})
 
 
@@ -131,13 +146,19 @@ def api_preview():
         return jsonify({"error": "session_id required"}), 400
     
     camera = CameraManager()
+    
+    # Try to initialize camera if needed (with timeout to prevent flooding)
     if not camera.is_initialized:
+        # Try to initialize, but fail fast if it doesn't work
         if not camera.initialize():
-            return jsonify({"error": "Camera not available"}), 500
+            # Return error without logging - frontend will handle
+            return jsonify({"error": "Camera not available", "code": "CAMERA_NOT_READY"}), 503
     
     frame = camera.read_frame()
     if frame is None:
-        return jsonify({"error": "Failed to read frame"}), 500
+        # Camera was initialized but can't read - may need re-init
+        camera.is_initialized = False
+        return jsonify({"error": "Failed to read frame", "code": "CAMERA_READ_FAILED"}), 503
     
     # Resize for preview
     preview_width, preview_height = camera.get_preview_size()
@@ -249,7 +270,7 @@ def api_review():
             else:
                 cropped_images_base64.append(None)
         except Exception as e:
-            print(f"Error processing frame: {e}")
+            logger.warning(f"Error processing frame: {e}")
             cropped_images_base64.append(None)
     
     session["cropped_images"] = cropped_images_base64
@@ -295,7 +316,7 @@ def api_process():
     for idx, img_base64 in enumerate(cropped_images):
         if img_base64 is None:
             error_msg = "Invalid image"
-            print(f"ERROR: Page {idx + 1}: {error_msg}")
+            logger.error(f"Page {idx + 1}: {error_msg}")
             results.append({"success": False, "error": error_msg})
             continue
         
@@ -312,16 +333,16 @@ def api_process():
             # Save cropped image
             output_path = os.path.join(CROPPED_OUTPUT_DIR, f"aruco_cropped_{timestamp}_p{idx+1}.jpg")
             cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 95])
-            print(f"Processing page {idx + 1}: Saved image to {output_path}")
+            logger.info(f"Page {idx + 1}: Saved image")
             
             # Scan with OpenAI
-            print(f"Processing page {idx + 1}: Scanning with OpenAI...")
+            logger.info(f"Page {idx + 1}: Scanning with OpenAI...")
             bulleted_text = scan_image_to_text(output_path, PROMPT_PATH)
-            print(f"Processing page {idx + 1}: OpenAI scan completed")
+            logger.info(f"Page {idx + 1}: OpenAI scan completed")
             
             # Create Notion page with image
             page_title = format_datetime_title()
-            print(f"Processing page {idx + 1}: Creating Notion page '{page_title}' in database {database_id}")
+            logger.info(f"Page {idx + 1}: Creating Notion page '{page_title}'")
             result = create_page_with_bulleted_list(
                 database_id=database_id,
                 title=page_title,
@@ -329,7 +350,7 @@ def api_process():
                 notion_token=notion_token,
                 image_path=output_path
             )
-            print(f"Processing page {idx + 1}: Successfully created Notion page {result.get('id')}")
+            logger.info(f"Page {idx + 1}: Created Notion page {result.get('id')}")
             
             results.append({
                 "success": True,
@@ -338,9 +359,7 @@ def api_process():
             })
         except Exception as e:
             error_msg = f"{type(e).__name__}: {str(e)}"
-            print(f"ERROR: Page {idx + 1}: {error_msg}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Page {idx + 1}: {error_msg}", exc_info=True)
             results.append({
                 "success": False,
                 "page_number": idx + 1,
