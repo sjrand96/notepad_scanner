@@ -319,10 +319,16 @@ def api_process():
             bulleted_text = scan_image_to_text(output_path, PROMPT_PATH)
             print(f"Processing page {idx + 1}: OpenAI scan completed")
             
-            # Create Notion page
+            # Create Notion page with image
             page_title = format_datetime_title()
             print(f"Processing page {idx + 1}: Creating Notion page '{page_title}' in database {database_id}")
-            result = create_page_with_bulleted_list(database_id, page_title, bulleted_text, notion_token)
+            result = create_page_with_bulleted_list(
+                database_id=database_id,
+                title=page_title,
+                bulleted_text=bulleted_text,
+                notion_token=notion_token,
+                image_path=output_path
+            )
             print(f"Processing page {idx + 1}: Successfully created Notion page {result.get('id')}")
             
             results.append({

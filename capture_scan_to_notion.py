@@ -21,6 +21,7 @@ from aruco.capture_and_crop_aruco import (
     crop_to_aruco_boundaries,
 )
 from scan_to_notion import scan_and_insert_to_notion
+from backend.user_manager import list_users, get_user
 
 # Configuration (matching capture_and_crop_aruco.py)
 MARGIN_FACTOR = 0  # Margin as fraction of marker width
@@ -149,7 +150,7 @@ def show_review_interface(cropped_images):
     return result[0] if result[0] is not None else False
 
 
-def process_cropped_images_to_notion(cropped_images, aruco_dict, aruco_params):
+def process_cropped_images_to_notion(cropped_images, aruco_dict, aruco_params, user_id=None):
     """
     Process cropped images: scan with OpenAI Vision and upload to Notion.
     Note: This assumes cropped_images are already saved to disk or we need to save them first.
@@ -159,6 +160,7 @@ def process_cropped_images_to_notion(cropped_images, aruco_dict, aruco_params):
         cropped_images: List of cropped image arrays (RGB format)
         aruco_dict: ArUco dictionary (not used here but kept for consistency)
         aruco_params: ArUco detector parameters (not used here but kept for consistency)
+        user_id: User ID to use for Notion credentials (e.g., "spencer", "celeste")
     
     Returns:
         Number of successfully processed pages
@@ -185,9 +187,9 @@ def process_cropped_images_to_notion(cropped_images, aruco_dict, aruco_params):
             if success:
                 print(f"✓ Saved cropped image to: {output_path}")
                 
-                # Scan and upload to Notion
+                # Scan and upload to Notion with user credentials
                 print()
-                result = scan_and_insert_to_notion(output_path, PROMPT_PATH)
+                result = scan_and_insert_to_notion(output_path, PROMPT_PATH, user_id=user_id)
                 print(f"✓ Successfully processed page {idx + 1}")
                 success_count += 1
             else:
@@ -198,10 +200,67 @@ def process_cropped_images_to_notion(cropped_images, aruco_dict, aruco_params):
     return success_count
 
 
+def select_user():
+    """
+    Prompt user to select their profile.
+    
+    Returns:
+        user_id: Selected user ID or None if using default
+    """
+    users = list_users()
+    
+    if not users:
+        print("No users configured. Using default environment credentials.")
+        return None
+    
+    print("\n" + "=" * 50)
+    print("USER SELECTION")
+    print("=" * 50)
+    
+    for idx, user_id in enumerate(users, 1):
+        user = get_user(user_id)
+        name = user.get("name", user_id) if user else user_id
+        print(f"{idx}. {name} ({user_id})")
+    
+    print(f"{len(users) + 1}. Skip (use default credentials)")
+    print()
+    
+    while True:
+        try:
+            choice = input(f"Select user (1-{len(users) + 1}): ").strip()
+            choice_num = int(choice)
+            
+            if 1 <= choice_num <= len(users):
+                user_id = users[choice_num - 1]
+                user = get_user(user_id)
+                if user:
+                    print(f"\n✓ Selected user: {user.get('name', user_id)}")
+                    
+                    # Verify credentials are configured
+                    if not user.get("notion_token"):
+                        print(f"⚠ Warning: No Notion token configured for {user_id}")
+                        print("Make sure NOTION_TOKEN or {USER}_NOTION_TOKEN is set in environment")
+                    if not user.get("notion_database_id"):
+                        print(f"⚠ Warning: No Notion database ID configured for {user_id}")
+                    
+                    return user_id
+            elif choice_num == len(users) + 1:
+                print("\n✓ Using default credentials from environment")
+                return None
+            else:
+                print(f"Invalid choice. Please enter 1-{len(users) + 1}")
+        except (ValueError, KeyboardInterrupt):
+            print("\nInvalid input or cancelled. Using default credentials.")
+            return None
+
+
 def main():
     """
     Main workflow: Live camera preview -> Capture frames -> Review (matplotlib) -> Batch process
     """
+    # Select user
+    user_id = select_user()
+    
     # Create output directories if they don't exist
     os.makedirs(CROPPED_OUTPUT_DIR, exist_ok=True)
     os.makedirs(LABELED_OUTPUT_DIR, exist_ok=True)
@@ -330,7 +389,7 @@ def main():
                             print(f"Processing {len(cropped_images)} pages to Notion...")
                             print(f"{'=' * 50}\n")
                             
-                            success_count = process_cropped_images_to_notion(cropped_images, aruco_dict, aruco_params)
+                            success_count = process_cropped_images_to_notion(cropped_images, aruco_dict, aruco_params, user_id=user_id)
                             
                             print(f"\n{'=' * 50}")
                             print(f"Batch processing complete: {success_count}/{len(cropped_images)} pages processed successfully")

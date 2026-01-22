@@ -1,9 +1,11 @@
 """
-Notion API client for creating pages with bulleted lists.
+Notion API client for creating pages with bulleted lists and image uploads.
 """
 import requests
 import os
 from backend.config import NOTION_TOKEN, NOTION_API_URL
+
+NOTION_VERSION = "2022-06-28"
 
 
 def parse_markdown_to_notion_blocks(markdown_text):
@@ -93,15 +95,91 @@ def parse_markdown_to_notion_blocks(markdown_text):
     return top_level_blocks
 
 
-def create_page_with_bulleted_list(database_id, title, bulleted_text, notion_token=None):
+def upload_image_to_notion(image_path, notion_token=None):
     """
-    Create a Notion page with headers and bulleted lists.
+    Upload an image file to Notion using the Direct Upload method.
+    
+    This implements the 3-step process:
+    1. Create a File Upload object
+    2. Upload file contents
+    3. Return the file_upload_id for attaching to blocks
+    
+    Args:
+        image_path: Path to the image file
+        notion_token: Notion API token (optional, uses NOTION_TOKEN from config if not provided)
+    
+    Returns:
+        file_upload_id: The ID to use when attaching the image to blocks
+    """
+    token = notion_token or NOTION_TOKEN
+    if not token:
+        raise ValueError("Notion token not provided and NOTION_TOKEN environment variable not set")
+    
+    # Determine content type from file extension
+    filename = os.path.basename(image_path)
+    file_ext = os.path.splitext(filename)[1].lower()
+    content_type_map = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".webp": "image/webp"
+    }
+    content_type = content_type_map.get(file_ext, "image/jpeg")
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Notion-Version": NOTION_VERSION
+    }
+    
+    # Step 1: Create file upload object
+    create_url = f"{NOTION_API_URL}/file_uploads"
+    payload = {
+        "filename": filename,
+        "content_type": content_type
+    }
+    
+    response = requests.post(create_url, headers=headers, json=payload)
+    if response.status_code != 200:
+        raise Exception(
+            f"File creation failed with status code {response.status_code}: {response.text}"
+        )
+    
+    file_upload = response.json()
+    file_upload_id = file_upload['id']
+    
+    # Step 2: Upload file content
+    upload_url = f"{NOTION_API_URL}/file_uploads/{file_upload_id}/send"
+    upload_headers = {
+        "Authorization": f"Bearer {token}",
+        "Notion-Version": NOTION_VERSION
+    }
+    
+    with open(image_path, "rb") as f:
+        files = {
+            "file": (filename, f, content_type)
+        }
+        response = requests.post(upload_url, headers=upload_headers, files=files)
+    
+    if response.status_code != 200:
+        raise Exception(
+            f"File upload failed with status code {response.status_code}: {response.text}"
+        )
+    
+    return file_upload_id
+
+
+def create_page_with_bulleted_list(database_id, title, bulleted_text, notion_token=None, image_path=None):
+    """
+    Create a Notion page with headers and bulleted lists, optionally with an image.
     
     Args:
         database_id: Notion database ID
         title: Title for the page
         bulleted_text: Markdown-style text (can include headers ### and bullets)
         notion_token: Notion API token (optional, uses NOTION_TOKEN from config if not provided)
+        image_path: Optional path to an image file to include at the top of the page
     
     Returns:
         Response JSON from Notion API
@@ -112,11 +190,32 @@ def create_page_with_bulleted_list(database_id, title, bulleted_text, notion_tok
     
     headers = {
         "Authorization": f"Bearer {token}",
-        "Notion-Version": "2022-06-28",
+        "Notion-Version": NOTION_VERSION,
         "Content-Type": "application/json",
     }
     
     children = parse_markdown_to_notion_blocks(bulleted_text)
+    
+    # If an image is provided, upload it and prepend an image block
+    if image_path and os.path.exists(image_path):
+        print(f"Uploading image to Notion: {os.path.basename(image_path)}")
+        file_upload_id = upload_image_to_notion(image_path, token)
+        
+        # Create image block
+        image_block = {
+            "object": "block",
+            "type": "image",
+            "image": {
+                "type": "file_upload",
+                "file_upload": {
+                    "id": file_upload_id
+                }
+            }
+        }
+        
+        # Prepend image block to children
+        children = [image_block] + children
+        print(f"✓ Image uploaded and attached to page")
     
     url = f"{NOTION_API_URL}/pages"
     

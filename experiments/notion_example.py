@@ -160,13 +160,14 @@ def create_page_in_database(title: str, notes: str):
     return response.json()
 
 
-def create_page_with_bulleted_list(title: str, bulleted_text: str):
+def create_page_with_bulleted_list(title: str, bulleted_text: str, image_path=None):
     """
-    Create a Notion page with headers and bulleted lists.
+    Create a Notion page with headers and bulleted lists, optionally with an image.
     
     Args:
         title: Title for the page
         bulleted_text: Markdown-style text (can include headers ### and bullets)
+        image_path: Optional path to an image file to include at the top of the page
     
     Returns:
         Response JSON from Notion API
@@ -175,6 +176,13 @@ def create_page_with_bulleted_list(title: str, bulleted_text: str):
     
     # Parse markdown text (headers and bullets) into Notion blocks
     children = parse_markdown_to_notion_blocks(bulleted_text)
+    
+    # If an image is provided, upload it and prepend an image block
+    # Note: This is a simplified version - for full implementation, 
+    # use the functions from backend.notion_client
+    if image_path and os.path.exists(image_path):
+        print(f"Warning: Image upload not implemented in this example file.")
+        print(f"Use backend.notion_client.create_page_with_bulleted_list for image support.")
     
     payload = {
         "parent": { "database_id": DATABASE_ID },

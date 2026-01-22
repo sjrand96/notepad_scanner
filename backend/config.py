@@ -23,7 +23,8 @@ DATA_DIR = "data"
 # API settings
 NOTION_API_URL = "https://api.notion.com/v1"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+# Default Notion token - can be overridden by user-specific tokens
+NOTION_TOKEN = os.getenv("SPENCER_NOTION_TOKEN") or os.getenv("CELESTE_NOTION_TOKEN")
 
 # Server settings
 HOST = "127.0.0.1"
