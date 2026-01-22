@@ -179,7 +179,7 @@ def create_page_with_bulleted_list(database_id, title, bulleted_text, notion_tok
         title: Title for the page
         bulleted_text: Markdown-style text (can include headers ### and bullets)
         notion_token: Notion API token (optional, uses NOTION_TOKEN from config if not provided)
-        image_path: Optional path to an image file to include at the top of the page
+        image_path: Optional path to an image file to include at the end of the page
     
     Returns:
         Response JSON from Notion API
@@ -196,10 +196,24 @@ def create_page_with_bulleted_list(database_id, title, bulleted_text, notion_tok
     
     children = parse_markdown_to_notion_blocks(bulleted_text)
     
-    # If an image is provided, upload it and prepend an image block
+    # If an image is provided, upload it and append an image block with header
     if image_path and os.path.exists(image_path):
         print(f"Uploading image to Notion: {os.path.basename(image_path)}")
         file_upload_id = upload_image_to_notion(image_path, token)
+        
+        # Create "Source Photo:" header block (heading_2)
+        header_block = {
+            "object": "block",
+            "type": "heading_2",
+            "heading_2": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": { "content": "Source Photo:" }
+                    }
+                ]
+            }
+        }
         
         # Create image block
         image_block = {
@@ -213,8 +227,8 @@ def create_page_with_bulleted_list(database_id, title, bulleted_text, notion_tok
             }
         }
         
-        # Prepend image block to children
-        children = [image_block] + children
+        # Append header and image blocks to children
+        children = children + [header_block, image_block]
         print(f"✓ Image uploaded and attached to page")
     
     url = f"{NOTION_API_URL}/pages"
