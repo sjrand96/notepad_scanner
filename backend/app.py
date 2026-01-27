@@ -7,6 +7,7 @@ import base64
 import json
 import threading
 import logging
+import time
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -18,7 +19,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.config import (
     CROPPED_OUTPUT_DIR, LABELED_OUTPUT_DIR, PROMPT_PATH,
-    HOST, PORT, DEBUG
+    HOST, PORT, DEBUG,
+    PREVIEW_JPEG_QUALITY, PREVIEW_RESIZE_INTERPOLATION, PREVIEW_DETECT_EVERY_N,
 )
 from backend.camera_manager import CameraManager
 from backend.image_processor import (
@@ -149,12 +151,21 @@ def api_start_session():
     return jsonify({"session_id": session_id, "user": user})
 
 
+def _preview_resize_interpolation():
+    """Resolve config to OpenCV interpolation constant."""
+    if PREVIEW_RESIZE_INTERPOLATION == "nearest":
+        return cv2.INTER_NEAREST
+    return cv2.INTER_LINEAR
+
+
 @app.route('/api/preview', methods=['GET'])
 def api_preview():
     """Get live camera preview frame."""
     session_id = request.args.get('session_id')
     if not session_id:
         return jsonify({"error": "session_id required"}), 400
+    
+    benchmark = request.args.get('benchmark', '').lower() in ('1', 'true', 'yes')
     
     # Don't try to use camera if session is being processed
     with processing_lock:
@@ -165,41 +176,99 @@ def api_preview():
     
     # Try to initialize camera if needed (with cooldown to prevent flooding)
     if not camera.is_initialized:
-        # Try to initialize, but fail fast if it doesn't work
-        # Cooldown is enforced in camera.initialize()
         if not camera.initialize():
-            # Return error without logging - frontend will handle
             return jsonify({"error": "Camera not available", "code": "CAMERA_NOT_READY"}), 503
     
+    t0 = time.perf_counter()
     frame = camera.read_frame()
     if frame is None:
-        # Camera was initialized but can't read - may need re-init
         camera.is_initialized = False
         return jsonify({"error": "Failed to read frame", "code": "CAMERA_READ_FAILED"}), 503
+    t_read = (time.perf_counter() - t0) * 1000
     
-    # Resize for preview
     preview_width, preview_height = camera.get_preview_size()
-    preview_frame = cv2.resize(frame, (preview_width, preview_height))
+    t1 = time.perf_counter()
+    preview_frame = cv2.resize(
+        frame, (preview_width, preview_height),
+        interpolation=_preview_resize_interpolation()
+    )
+    t_resize = (time.perf_counter() - t1) * 1000
     
-    # Detect ArUco markers (lightweight)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    try:
-        aruco_params = cv2.aruco.DetectorParameters()
-    except AttributeError:
-        aruco_params = cv2.aruco.DetectorParameters_create()
+    session = get_session(session_id)
+    preview_frame_count = 0
+    preview_last = None
+    if session:
+        preview_frame_count = session.get("preview_frame_count", 0)
+        session["preview_frame_count"] = preview_frame_count + 1
+        preview_last = session.get("preview_last_box")
+        set_session(session_id, session)
     
-    corners, ids, annotated_frame = detect_aruco_live(preview_frame, aruco_dict, aruco_params)
+    run_detect = (PREVIEW_DETECT_EVERY_N <= 1 or
+                  (preview_frame_count % PREVIEW_DETECT_EVERY_N) == 0)
     
-    # Encode as JPEG
-    _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    if run_detect:
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        try:
+            aruco_params = cv2.aruco.DetectorParameters()
+        except AttributeError:
+            aruco_params = cv2.aruco.DetectorParameters_create()
+        t2 = time.perf_counter()
+        corners, ids, annotated_frame = detect_aruco_live(
+            preview_frame, aruco_dict, aruco_params
+        )
+        t_detect = (time.perf_counter() - t2) * 1000
+        marker_count = len(ids) if ids is not None else 0
+        box_points = None
+        if ids is not None and len(ids) >= 2:
+            all_corners = [c[0].astype(int) for c in corners]
+            all_pts = np.concatenate(all_corners, axis=0)
+            rect = cv2.minAreaRect(all_pts)
+            box_points = cv2.boxPoints(rect).astype(int)
+        if session:
+            s = get_session(session_id)
+            if s:
+                s["preview_last_box"] = (box_points, marker_count)
+                set_session(session_id, s)
+    else:
+        t_detect = 0.0
+        if preview_last is not None:
+            box_points, marker_count = preview_last
+            annotated_frame = preview_frame.copy()
+            if box_points is not None:
+                cv2.polylines(
+                    annotated_frame, [box_points], isClosed=True,
+                    color=(255, 0, 255), thickness=2
+                )
+        else:
+            annotated_frame = preview_frame
+            marker_count = 0
+    
+    t3 = time.perf_counter()
+    _, buffer = cv2.imencode(
+        '.jpg', annotated_frame,
+        [cv2.IMWRITE_JPEG_QUALITY, PREVIEW_JPEG_QUALITY]
+    )
+    t_encode = (time.perf_counter() - t3) * 1000
+    t4 = time.perf_counter()
     jpg_base64 = base64.b64encode(buffer).decode('utf-8')
+    t_base64 = (time.perf_counter() - t4) * 1000
     
-    marker_count = len(ids) if ids is not None else 0
-    
-    return jsonify({
+    out = {
         "image": f"data:image/jpeg;base64,{jpg_base64}",
-        "marker_count": marker_count
-    })
+        "marker_count": marker_count,
+    }
+    if benchmark:
+        out["benchmark"] = {
+            "read_ms": round(t_read, 1),
+            "resize_ms": round(t_resize, 1),
+            "detect_ms": round(t_detect, 1),
+            "encode_ms": round(t_encode, 1),
+            "base64_ms": round(t_base64, 1),
+            "total_ms": round((t_read + t_resize + t_detect + t_encode + t_base64), 1),
+            "detect_skipped": not run_detect,
+        }
+    
+    return jsonify(out)
 
 
 @app.route('/api/capture', methods=['POST'])

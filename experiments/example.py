@@ -13,7 +13,7 @@ def encode_image(image_path):
 image_path = "images/IMG_7712.JPG"
 
 # Read prompt from file
-prompt_path = "prompt.txt"
+prompt_path = "backend/prompts/handwriting_ocr.txt"
 with open(prompt_path, "r", encoding="utf-8") as prompt_file:
     prompt_text = prompt_file.read().strip()
 

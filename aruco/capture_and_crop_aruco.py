@@ -48,33 +48,33 @@ def calculate_marker_width(corners):
 
 def detect_aruco_live(frame, aruco_dict, aruco_params):
     """
-    Detect ArUco markers in frame for live preview (lightweight).
+    Detect ArUco markers in frame for live preview (lightweight, minimal annotations).
+    
+    Optimized for speed - only draws bounding box, no marker IDs or labels.
+    Use detect_aruco_detailed() for full annotations.
     
     Args:
-        frame: Input frame
+        frame: Input frame (typically downscaled preview ~640px)
         aruco_dict: ArUco dictionary
         aruco_params: ArUco detector parameters
     
     Returns:
-        corners, ids, annotated_frame
+        corners, ids, annotated_frame (with minimal overlay - just bounding box)
     """
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     corners, ids, rejected = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=aruco_params)
     
     annotated_frame = frame.copy()
     
-    if ids is not None and len(ids) > 0:
-        # Draw detected markers (bounding boxes)
-        cv2.aruco.drawDetectedMarkers(annotated_frame, corners, ids)
-        
-        # Draw rotated rectangle around all markers
-        if len(corners) >= 2:
-            all_corners = [corner[0].astype(int) for corner in corners]
-            all_points = np.concatenate(all_corners, axis=0)
-            rect = cv2.minAreaRect(all_points)
-            box_points = cv2.boxPoints(rect)
-            box_points = box_points.astype(int)
-            cv2.polylines(annotated_frame, [box_points], isClosed=True, color=(255, 0, 255), thickness=2)
+    # Only draw bounding box (no marker IDs or detailed annotations for speed)
+    if ids is not None and len(ids) >= 2:
+        all_corners = [corner[0].astype(int) for corner in corners]
+        all_points = np.concatenate(all_corners, axis=0)
+        rect = cv2.minAreaRect(all_points)
+        box_points = cv2.boxPoints(rect)
+        box_points = box_points.astype(int)
+        # Draw bounding box in bright magenta for visibility
+        cv2.polylines(annotated_frame, [box_points], isClosed=True, color=(255, 0, 255), thickness=2)
     
     return corners, ids, annotated_frame
 

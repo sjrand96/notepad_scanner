@@ -20,13 +20,13 @@ def encode_image(image_path):
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 
-def scan_image_to_text(image_path, prompt_path="prompt.txt"):
+def scan_image_to_text(image_path, prompt_path="backend/prompts/handwriting_ocr.txt"):
     """
     Scan an image using OpenAI Vision API and extract text as bulleted list.
     
     Args:
         image_path: Path to the image file
-        prompt_path: Path to the prompt file (default: "prompt.txt")
+        prompt_path: Path to the prompt file (default: "backend/prompts/handwriting_ocr.txt")
     
     Returns:
         Extracted text as string (bulleted list format)
@@ -84,13 +84,13 @@ def format_datetime_title():
     return now.strftime("Scan %m/%d/%Y %H:%M:%S")
 
 
-def scan_and_insert_to_notion(image_path, prompt_path="prompt.txt", user_id=None):
+def scan_and_insert_to_notion(image_path, prompt_path="backend/prompts/handwriting_ocr.txt", user_id=None):
     """
     Complete workflow: Scan image and insert result into Notion with the image attached.
     
     Args:
         image_path: Path to the image file to scan
-        prompt_path: Path to the prompt file (default: "prompt.txt")
+        prompt_path: Path to the prompt file (default: "backend/prompts/handwriting_ocr.txt")
         user_id: User ID to use for Notion credentials (e.g., "spencer", "celeste")
                 If not provided, uses environment variable or defaults to Spencer
     

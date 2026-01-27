@@ -30,7 +30,7 @@ CAPTURE_WIDTH = 3264
 CAPTURE_HEIGHT = 2448
 CROPPED_OUTPUT_DIR = "aruco/outputs/capture_and_crop_outputs/cropped_output_images"
 LABELED_OUTPUT_DIR = "aruco/outputs/capture_and_crop_outputs/labelled_whole_images"
-PROMPT_PATH = "prompt.txt"  # Path to OpenAI Vision prompt file
+PROMPT_PATH = "backend/prompts/handwriting_ocr.txt"  # Path to OpenAI Vision prompt file
 
 
 def process_and_crop_frames(captured_frames, aruco_dict, aruco_params):
