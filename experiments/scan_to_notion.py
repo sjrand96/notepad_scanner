@@ -71,7 +71,7 @@ def format_datetime_title():
         Formatted datetime string
     """
     now = datetime.now()
-    return now.strftime("Scan %m/%d/%Y %H:%M:%S")
+    return now.strftime("Scan %m/%d/%Y %H:%MM:%SS")
 
 
 def scan_and_insert_to_notion(image_path, prompt_path="backend/prompts/handwriting_ocr.txt", user_id=None):

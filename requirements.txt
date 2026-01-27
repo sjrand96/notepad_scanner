@@ -1,12 +1,14 @@
 openai
-opencv-python
 matplotlib
-opencv-contrib-python
 Pillow
 python-dotenv
 requests
 flask
 flask-cors
+
+# Don't install these on the pi
+# opencv-python
+# opencv-contrib-python
 
 # Testing dependencies (optional - install with: pip install -r requirements-dev.txt)
 # pytest>=7.4.0
