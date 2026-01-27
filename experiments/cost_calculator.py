@@ -292,4 +292,3 @@ class ImageAnalysisCostCalculator:
             'model': self.model,
             'tier': self.tier,
         }
-

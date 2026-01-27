@@ -6,7 +6,6 @@ import base64
 import os
 from datetime import datetime
 from openai import OpenAI
-from cost_calculator import ImageAnalysisCostCalculator
 from backend.notion_client import create_page_with_bulleted_list
 from backend.user_manager import get_user
 
@@ -34,15 +33,6 @@ def scan_image_to_text(image_path, prompt_path="backend/prompts/handwriting_ocr.
     # Read prompt from file
     with open(prompt_path, "r", encoding="utf-8") as prompt_file:
         prompt_text = prompt_file.read().strip()
-    
-    # Calculate cost before making the API call
-    cost_calculator = ImageAnalysisCostCalculator(model="gpt-4.1", tier="standard")
-    cost_info = cost_calculator.calculate_cost_both(image_path=image_path, detail="high")
-    print(f"Estimated cost for this image:")
-    print(f"  Tokens: {cost_info['tokens']:,}")
-    print(f"  Dollars: ${cost_info['dollars']:.6f}")
-    print(f"  Model: {cost_info['model']} ({cost_info['tier']} tier)")
-    print()
     
     # Encode image to base64
     base64_image = encode_image(image_path)

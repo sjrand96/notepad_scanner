@@ -3,7 +3,6 @@ OpenAI Vision API client for scanning images.
 """
 import base64
 from openai import OpenAI
-from cost_calculator import ImageAnalysisCostCalculator
 from backend.config import OPENAI_API_KEY, PROMPT_PATH
 
 
@@ -35,9 +34,6 @@ def scan_image_to_text(image_path, prompt_path=None):
     
     with open(prompt_path, "r", encoding="utf-8") as prompt_file:
         prompt_text = prompt_file.read().strip()
-    
-    cost_calculator = ImageAnalysisCostCalculator(model="gpt-4.1", tier="standard")
-    cost_info = cost_calculator.calculate_cost_both(image_path=image_path, detail="high")
     
     base64_image = encode_image(image_path)
     

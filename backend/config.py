@@ -7,10 +7,12 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Camera settings
-PREVIEW_WIDTH = int(os.getenv("PREVIEW_WIDTH", "640"))
-CAPTURE_WIDTH = 3264
-CAPTURE_HEIGHT = 2448
+# Camera settings, for Pi5 and my webcam 1600x1200 gives best FPS preview, full res 3264x2448 gives best OCR.
+PREVIEW_WIDTH = 1280
+# CAPTURE_WIDTH = 3264
+# CAPTURE_HEIGHT = 2448
+CAPTURE_WIDTH = 1600
+CAPTURE_HEIGHT = 1200
 MARGIN_FACTOR = 0  # Margin as fraction of marker width
 
 # Preview tuning (helps on Raspberry Pi / low-power devices)

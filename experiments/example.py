@@ -1,6 +1,9 @@
 import base64
 from openai import OpenAI
-from cost_calculator import ImageAnalysisCostCalculator
+try:
+    from experiments.cost_calculator import ImageAnalysisCostCalculator
+except ImportError:
+    from cost_calculator import ImageAnalysisCostCalculator  # when run from experiments/
 
 client = OpenAI()
 
