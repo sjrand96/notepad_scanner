@@ -65,7 +65,7 @@ The web interface will be served automatically.
 - **Server host/port:** Edit `backend/config.py` (default: `127.0.0.1:5000`)
 - **User profiles:** Edit `data/users.json` after first run
 - **Camera settings:** Edit `backend/config.py` (PREVIEW_WIDTH, CAPTURE_WIDTH, etc.)
-- **Preview tuning (Raspberry Pi):** See [RASPBERRY_PI_TUNING.md](RASPBERRY_PI_TUNING.md) for `PREVIEW_WIDTH`, `PREVIEW_JPEG_QUALITY`, `PREVIEW_RESIZE_INTERPOLATION`, `PREVIEW_DETECT_EVERY_N`, and benchmarking.
+- **Preview tuning (Raspberry Pi):** See [RASPBERRY_PI_TUNING.md](RASPBERRY_PI_TUNING.md) for `PREVIEW_WIDTH`, `PREVIEW_JPEG_QUALITY`, `PREVIEW_RESIZE_INTERPOLATION`, and benchmarking.
 
 ## API Endpoints
 

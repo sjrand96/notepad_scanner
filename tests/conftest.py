@@ -40,13 +40,15 @@ def sample_users():
         "test_user_1": {
             "name": "Test User 1",
             "notion_database_id": "test_db_id_1",
-            "notion_token": "test_token_1"
+            "notion_token": "test_token_1",
+            "notion_token_env_var_name": "TEST_USER_1_NOTION_TOKEN",
         },
         "test_user_2": {
             "name": "Test User 2",
             "notion_database_id": "test_db_id_2",
-            "notion_token": "test_token_2"
-        }
+            "notion_token": "test_token_2",
+            "notion_token_env_var_name": "TEST_USER_2_NOTION_TOKEN",
+        },
     }
 
 

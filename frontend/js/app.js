@@ -79,18 +79,22 @@ class App {
                 const data = await API.getPreview(this.sessionId);
                 const img = document.getElementById('preview-image');
                 img.src = data.image;
-                
-                // Update marker count if element exists (horizontal layout)
+
+                // Update marker count and capture button state
                 const markerCount = document.getElementById('marker-count');
                 const markerIndicator = document.getElementById('marker-indicator');
+                const captureButton = document.getElementById('capture-button');
+
                 if (markerCount && data.marker_count !== undefined) {
                     markerCount.textContent = data.marker_count;
                     if (markerIndicator) {
-                        if (data.marker_count >= 4) {
-                            markerIndicator.classList.add('has-markers');
-                        } else {
-                            markerIndicator.classList.remove('has-markers');
-                        }
+                        const hasAllMarkers = data.marker_count >= 4;
+                        markerIndicator.classList.toggle('has-markers', hasAllMarkers);
+                    }
+                    if (captureButton) {
+                        const hasAllMarkers = data.marker_count >= 4;
+                        captureButton.disabled = !hasAllMarkers;
+                        captureButton.classList.toggle('disabled', !hasAllMarkers);
                     }
                 }
             } catch (error) {

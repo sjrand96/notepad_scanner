@@ -122,7 +122,7 @@ body {
 
 /* Left: Preview (70%) */
 .preview-section {
-    width: 70%;
+    width: 45%;
     height: 100%;
     background: #000;
     position: relative;
@@ -135,12 +135,20 @@ body {
     width: 100%;
     height: 100%;
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 #preview-image {
-    width: 100%;
+    width: auto;
     height: 100%;
+    max-height: 100%;
+    max-width: 100%;
     object-fit: contain;
+    transform: rotate(-90deg);
+    transform-origin: center center;
 }
 
 .preview-overlay {
@@ -185,7 +193,7 @@ body {
 
 /* Right: Controls (30%) */
 .controls-section {
-    width: 30%;
+    width: 55%;
     height: 100%;
     background: var(--bg-card);
     display: flex;
@@ -233,7 +241,8 @@ body {
 }
 
 .btn-action {
-    height: 140px;
+    min-height: 90px;
+    height: 14vh;
     border: none;
     border-radius: 20px;
     display: flex;
@@ -261,7 +270,7 @@ body {
 .btn-capture {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
-    flex: 2;
+    flex: 3;
 }
 
 .btn-capture:active {
@@ -272,6 +281,7 @@ body {
 .btn-done {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
+    flex: 1;
 }
 
 .btn-done:active {
@@ -282,6 +292,34 @@ body {
     background: #333;
     color: #666;
     cursor: not-allowed;
+}
+
+.btn-capture:disabled,
+.btn-action.disabled {
+    background: #1f2933;
+    color: #6b7280;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Small-screen tweaks for 720x1280-style displays */
+@media (max-width: 900px) {
+    .page-count-number {
+        font-size: 4rem;
+    }
+
+    .btn-action {
+        height: 16vh;
+        min-height: 100px;
+    }
+
+    .btn-capture {
+        flex: 4;
+    }
+
+    .btn-done {
+        flex: 1;
+    }
 }
 
 /* ============= REVIEW SCREEN ============= */

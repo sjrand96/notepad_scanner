@@ -28,10 +28,12 @@ def calculate_marker_width(corners):
 
 def detect_aruco_live(frame, aruco_dict, aruco_params):
     """
-    Detect ArUco markers in frame for live preview (lightweight, minimal annotations).
+    Detect ArUco markers in frame for live preview.
     
-    Optimized for speed - only draws bounding box, no marker IDs or labels.
-    Use detect_aruco_detailed() for full annotations.
+    Optimized for clarity and responsiveness:
+    - Overlays a solid green square on each detected marker
+    - Draws a magenta bounding box around the detected region
+    Use detect_aruco_detailed() for full annotations with IDs and labels.
     
     Args:
         frame: Input frame (typically downscaled preview ~640px)
@@ -46,15 +48,26 @@ def detect_aruco_live(frame, aruco_dict, aruco_params):
     
     annotated_frame = frame.copy()
     
-    # Only draw bounding box (no marker IDs or detailed annotations for speed)
-    if ids is not None and len(ids) >= 2:
-        all_corners = [corner[0].astype(int) for corner in corners]
-        all_points = np.concatenate(all_corners, axis=0)
-        rect = cv2.minAreaRect(all_points)
-        box_points = cv2.boxPoints(rect)
-        box_points = box_points.astype(int)
-        # Draw bounding box in bright magenta for visibility
-        cv2.polylines(annotated_frame, [box_points], isClosed=True, color=(255, 0, 255), thickness=2)
+    if ids is not None and len(ids) > 0:
+        # Create an overlay to draw filled green squares on each detected marker
+        overlay = annotated_frame.copy()
+        for corner in corners:
+            pts = corner[0].astype(int)
+            # Solid green fill over each marker region (high opacity)
+            cv2.fillConvexPoly(overlay, pts, (0, 255, 0))
+        
+        # Blend overlay back onto the frame; keep markers mostly opaque
+        alpha = 1  # higher alpha = less transparent
+        cv2.addWeighted(overlay, alpha, annotated_frame, 1 - alpha, 0, annotated_frame)
+        
+        # Also draw a magenta bounding box around the overall detected region
+        if len(ids) >= 2:
+            all_corners = [corner[0].astype(int) for corner in corners]
+            all_points = np.concatenate(all_corners, axis=0)
+            rect = cv2.minAreaRect(all_points)
+            box_points = cv2.boxPoints(rect)
+            box_points = box_points.astype(int)
+            cv2.polylines(annotated_frame, [box_points], isClosed=True, color=(255, 0, 255), thickness=3)
     
     return corners, ids, annotated_frame
 

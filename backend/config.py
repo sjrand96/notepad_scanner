@@ -20,8 +20,6 @@ MARGIN_FACTOR = 0  # Margin as fraction of marker width
 PREVIEW_JPEG_QUALITY = int(os.getenv("PREVIEW_JPEG_QUALITY", "85"))
 # - PREVIEW_RESIZE_INTERPOLATION: "linear" (default) or "nearest". Nearest is faster.
 PREVIEW_RESIZE_INTERPOLATION = os.getenv("PREVIEW_RESIZE_INTERPOLATION", "linear").lower()
-# - PREVIEW_DETECT_EVERY_N: Run ArUco every N frames (1=always). 2 or 3 reduces CPU.
-PREVIEW_DETECT_EVERY_N = max(1, int(os.getenv("PREVIEW_DETECT_EVERY_N", "1")))
 
 # Paths
 CROPPED_OUTPUT_DIR = "aruco/outputs/capture_and_crop_outputs/cropped_output_images"

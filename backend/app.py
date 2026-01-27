@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.config import (
     CROPPED_OUTPUT_DIR, LABELED_OUTPUT_DIR, PROMPT_PATH,
     HOST, PORT, DEBUG,
-    PREVIEW_JPEG_QUALITY, PREVIEW_RESIZE_INTERPOLATION, PREVIEW_DETECT_EVERY_N,
+    PREVIEW_JPEG_QUALITY, PREVIEW_RESIZE_INTERPOLATION,
 )
 from backend.camera_manager import CameraManager
 from backend.image_processor import (
@@ -116,7 +116,13 @@ def api_start_session():
     if not user_id:
         return jsonify({"error": "user_id required"}), 400
     
-    user = get_user(user_id)
+    try:
+        user = get_user(user_id)
+    except ValueError as e:
+        # Surface configuration errors (e.g., missing Notion settings in users.json)
+        # to the client as a clear JSON error response instead of an HTML 500 page.
+        return jsonify({"error": str(e)}), 400
+
     if not user:
         return jsonify({"error": "User not found"}), 404
     
@@ -194,54 +200,18 @@ def api_preview():
     )
     t_resize = (time.perf_counter() - t1) * 1000
     
-    session = get_session(session_id)
-    preview_frame_count = 0
-    preview_last = None
-    if session:
-        preview_frame_count = session.get("preview_frame_count", 0)
-        session["preview_frame_count"] = preview_frame_count + 1
-        preview_last = session.get("preview_last_box")
-        set_session(session_id, session)
-    
-    run_detect = (PREVIEW_DETECT_EVERY_N <= 1 or
-                  (preview_frame_count % PREVIEW_DETECT_EVERY_N) == 0)
-    
-    if run_detect:
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        try:
-            aruco_params = cv2.aruco.DetectorParameters()
-        except AttributeError:
-            aruco_params = cv2.aruco.DetectorParameters_create()
-        t2 = time.perf_counter()
-        corners, ids, annotated_frame = detect_aruco_live(
-            preview_frame, aruco_dict, aruco_params
-        )
-        t_detect = (time.perf_counter() - t2) * 1000
-        marker_count = len(ids) if ids is not None else 0
-        box_points = None
-        if ids is not None and len(ids) >= 2:
-            all_corners = [c[0].astype(int) for c in corners]
-            all_pts = np.concatenate(all_corners, axis=0)
-            rect = cv2.minAreaRect(all_pts)
-            box_points = cv2.boxPoints(rect).astype(int)
-        if session:
-            s = get_session(session_id)
-            if s:
-                s["preview_last_box"] = (box_points, marker_count)
-                set_session(session_id, s)
-    else:
-        t_detect = 0.0
-        if preview_last is not None:
-            box_points, marker_count = preview_last
-            annotated_frame = preview_frame.copy()
-            if box_points is not None:
-                cv2.polylines(
-                    annotated_frame, [box_points], isClosed=True,
-                    color=(255, 0, 255), thickness=2
-                )
-        else:
-            annotated_frame = preview_frame
-            marker_count = 0
+    # Run ArUco detection on every frame (no caching)
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    try:
+        aruco_params = cv2.aruco.DetectorParameters()
+    except AttributeError:
+        aruco_params = cv2.aruco.DetectorParameters_create()
+    t2 = time.perf_counter()
+    corners, ids, annotated_frame = detect_aruco_live(
+        preview_frame, aruco_dict, aruco_params
+    )
+    t_detect = (time.perf_counter() - t2) * 1000
+    marker_count = len(ids) if ids is not None else 0
     
     t3 = time.perf_counter()
     _, buffer = cv2.imencode(
@@ -265,7 +235,7 @@ def api_preview():
             "encode_ms": round(t_encode, 1),
             "base64_ms": round(t_base64, 1),
             "total_ms": round((t_read + t_resize + t_detect + t_encode + t_base64), 1),
-            "detect_skipped": not run_detect,
+            "detect_skipped": False,
         }
     
     return jsonify(out)
