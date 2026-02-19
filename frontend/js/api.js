@@ -66,13 +66,17 @@ class API {
         return response.json();
     }
 
-    static async process(sessionId) {
+    static async process(sessionId, images = null) {
+        const body = { session_id: sessionId };
+        if (images && images.length > 0) {
+            body.images = images;
+        }
         const response = await fetch(`${API_BASE}/api/process`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ session_id: sessionId }),
+            body: JSON.stringify(body),
         });
         if (!response.ok) {
             const error = await response.json();

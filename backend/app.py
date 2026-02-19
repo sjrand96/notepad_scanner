@@ -333,7 +333,8 @@ def api_process():
         if not notion_token:
             return jsonify({"error": "Notion token not configured for user"}), 400
         
-        cropped_images = session.get("cropped_images", [])
+        # Use request body images if provided (e.g. after user rotated some in review UI), else session
+        cropped_images = data.get("images") or session.get("cropped_images", [])
         if len(cropped_images) == 0:
             return jsonify({"error": "No images to process"}), 400
         

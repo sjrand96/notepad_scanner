@@ -9,6 +9,8 @@ class App {
         this.users = [];
         this.previewInterval = null;
         this.capturedCount = 0;
+        /** Current review images (data URLs); updated when user rotates. Sent to backend on Process. */
+        this.reviewImages = [];
         
         this.initializeEventListeners();
         this.loadUsers();
@@ -147,10 +149,11 @@ class App {
     }
 
     showReviewScreen(images) {
+        this.reviewImages = images ? [...images] : [];
         const grid = document.getElementById('review-grid');
         grid.innerHTML = '';
 
-        images.forEach((imgData, index) => {
+        this.reviewImages.forEach((imgData, index) => {
             const item = document.createElement('div');
             item.className = 'review-item';
             
@@ -158,6 +161,10 @@ class App {
                 const img = document.createElement('img');
                 img.src = imgData;
                 img.alt = `Page ${index + 1}`;
+                img.dataset.reviewIndex = String(index);
+                img.title = 'Tap to rotate 180°';
+                img.classList.add('review-image-tappable');
+                img.addEventListener('click', () => this.rotateReviewImage(index, img));
                 item.appendChild(img);
             } else {
                 item.style.background = '#333';
@@ -183,11 +190,47 @@ class App {
         this.showScreen('review-screen');
     }
 
+    /**
+     * Rotate image at index by 180° (UI and data sent to backend).
+     */
+    async rotateReviewImage(index, imgElement) {
+        const dataUrl = this.reviewImages[index];
+        if (!dataUrl || !dataUrl.startsWith('data:')) return;
+
+        const rotated = await this.rotateDataUrl180(dataUrl);
+        if (!rotated) return;
+        this.reviewImages[index] = rotated;
+        imgElement.src = rotated;
+    }
+
+    /**
+     * Return a new data URL for the image rotated 180° (canvas).
+     */
+    rotateDataUrl180(dataUrl) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(Math.PI);
+                ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg', 0.92));
+            };
+            img.onerror = () => resolve(null);
+            img.src = dataUrl;
+        });
+    }
+
     async process() {
         this.showScreen('processing-screen');
         
         try {
-            const data = await API.process(this.sessionId);
+            const data = await API.process(this.sessionId, this.reviewImages.length ? this.reviewImages : null);
             
             // Check if there were any errors
             const failedResults = data.results.filter(r => !r.success);

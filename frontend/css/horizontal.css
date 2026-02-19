@@ -295,8 +295,15 @@ body {
     font-size: 2rem;
     font-weight: 700;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
     letter-spacing: 2px;
+}
+
+.review-tap-hint {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 16px;
 }
 
 .review-grid-horizontal {
@@ -323,6 +330,10 @@ body {
     border-color: var(--accent-capture);
 }
 
+.review-item img.review-image-tappable {
+    cursor: pointer;
+    touch-action: manipulation;
+}
 .review-item img {
     width: 100%;
     height: 100%;
