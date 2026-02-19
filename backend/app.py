@@ -18,14 +18,13 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.config import (
-    CROPPED_OUTPUT_DIR, LABELED_OUTPUT_DIR, PROMPT_PATH,
+    CAPTURE_OUTPUT_DIR, PROMPT_PATH,
     HOST, PORT, DEBUG,
     PREVIEW_JPEG_QUALITY, PREVIEW_RESIZE_INTERPOLATION,
+    ROI_X, ROI_Y, ROI_WIDTH, ROI_HEIGHT,
 )
 from backend.camera_manager import CameraManager
-from backend.image_processor import (
-    detect_aruco_live, detect_aruco_detailed, crop_to_aruco_boundaries
-)
+from backend.image_processor import crop_to_fixed_roi
 from backend.openai_client import scan_image_to_text
 from backend.notion_client import create_page_with_bulleted_list
 from backend.user_manager import get_user, list_users
@@ -191,7 +190,7 @@ def api_preview():
         camera.is_initialized = False
         return jsonify({"error": "Failed to read frame", "code": "CAMERA_READ_FAILED"}), 503
     t_read = (time.perf_counter() - t0) * 1000
-    
+
     preview_width, preview_height = camera.get_preview_size()
     t1 = time.perf_counter()
     preview_frame = cv2.resize(
@@ -199,45 +198,27 @@ def api_preview():
         interpolation=_preview_resize_interpolation()
     )
     t_resize = (time.perf_counter() - t1) * 1000
-    
-    # Run ArUco detection on every frame (no caching)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    try:
-        aruco_params = cv2.aruco.DetectorParameters()
-    except AttributeError:
-        aruco_params = cv2.aruco.DetectorParameters_create()
+
     t2 = time.perf_counter()
-    corners, ids, annotated_frame = detect_aruco_live(
-        preview_frame, aruco_dict, aruco_params
-    )
-    t_detect = (time.perf_counter() - t2) * 1000
-    marker_count = len(ids) if ids is not None else 0
-    
-    t3 = time.perf_counter()
     _, buffer = cv2.imencode(
-        '.jpg', annotated_frame,
+        '.jpg', preview_frame,
         [cv2.IMWRITE_JPEG_QUALITY, PREVIEW_JPEG_QUALITY]
     )
-    t_encode = (time.perf_counter() - t3) * 1000
-    t4 = time.perf_counter()
+    t_encode = (time.perf_counter() - t2) * 1000
+    t3 = time.perf_counter()
     jpg_base64 = base64.b64encode(buffer).decode('utf-8')
-    t_base64 = (time.perf_counter() - t4) * 1000
-    
-    out = {
-        "image": f"data:image/jpeg;base64,{jpg_base64}",
-        "marker_count": marker_count,
-    }
+    t_base64 = (time.perf_counter() - t3) * 1000
+
+    out = {"image": f"data:image/jpeg;base64,{jpg_base64}"}
     if benchmark:
         out["benchmark"] = {
             "read_ms": round(t_read, 1),
             "resize_ms": round(t_resize, 1),
-            "detect_ms": round(t_detect, 1),
             "encode_ms": round(t_encode, 1),
             "base64_ms": round(t_base64, 1),
-            "total_ms": round((t_read + t_resize + t_detect + t_encode + t_base64), 1),
-            "detect_skipped": False,
+            "total_ms": round((t_read + t_resize + t_encode + t_base64), 1),
         }
-    
+
     return jsonify(out)
 
 
@@ -289,44 +270,30 @@ def api_review():
     
     if len(session["captured_frames"]) == 0:
         return jsonify({"error": "No frames captured"}), 400
-    
-    # Process frames
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    try:
-        aruco_params = cv2.aruco.DetectorParameters()
-    except AttributeError:
-        aruco_params = cv2.aruco.DetectorParameters_create()
-    
+
     cropped_images_base64 = []
-    
+
     for frame_bytes in session["captured_frames"]:
-        # Decode frame
         nparr = np.frombuffer(frame_bytes, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
+
         if frame is None:
             cropped_images_base64.append(None)
             continue
-        
+
         try:
-            corners, ids, labeled_image, all_corners = detect_aruco_detailed(
-                frame, aruco_dict, aruco_params
+            cropped = crop_to_fixed_roi(
+                frame, ROI_X, ROI_Y, ROI_WIDTH, ROI_HEIGHT
             )
-            
-            if ids is not None and len(ids) >= 4:
-                cropped = crop_to_aruco_boundaries(frame, corners, ids, 0)
-                
-                if cropped is not None and cropped.size > 0:
-                    # Convert to RGB and encode
-                    cropped_rgb = cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB)
-                    _, buffer = cv2.imencode('.jpg', cv2.cvtColor(cropped_rgb, cv2.COLOR_RGB2BGR), 
-                                            [cv2.IMWRITE_JPEG_QUALITY, 90])
-                    jpg_base64 = base64.b64encode(buffer).decode('utf-8')
-                    cropped_images_base64.append(f"data:image/jpeg;base64,{jpg_base64}")
-                else:
-                    cropped_images_base64.append(None)
-            else:
-                cropped_images_base64.append(None)
+            if cropped is None or cropped.size == 0:
+                cropped = frame  # fallback to full frame
+
+            _, buffer = cv2.imencode(
+                '.jpg', cropped,
+                [cv2.IMWRITE_JPEG_QUALITY, 90]
+            )
+            jpg_base64 = base64.b64encode(buffer).decode('utf-8')
+            cropped_images_base64.append(f"data:image/jpeg;base64,{jpg_base64}")
         except Exception as e:
             logger.warning(f"Error processing frame: {e}")
             cropped_images_base64.append(None)
@@ -376,31 +343,28 @@ def api_process():
         
         logger.info(f"🚀 Starting processing of {len(cropped_images)} page(s)")
         
-        # Ensure output directories exist
-        os.makedirs(CROPPED_OUTPUT_DIR, exist_ok=True)
-        
+        os.makedirs(CAPTURE_OUTPUT_DIR, exist_ok=True)
+
         results = []
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
+
         for idx, img_base64 in enumerate(cropped_images):
             if img_base64 is None:
                 error_msg = "Invalid image"
                 logger.error(f"❌ Page {idx + 1}: {error_msg}")
                 results.append({"success": False, "error": error_msg})
                 continue
-            
+
             try:
-                # Decode base64 image
                 header, encoded = img_base64.split(',', 1)
                 image_data = base64.b64decode(encoded)
                 nparr = np.frombuffer(image_data, np.uint8)
                 img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                
+
                 if img is None:
                     raise ValueError("Failed to decode image")
-                
-                # Save cropped image
-                output_path = os.path.join(CROPPED_OUTPUT_DIR, f"aruco_cropped_{timestamp}_p{idx+1}.jpg")
+
+                output_path = os.path.join(CAPTURE_OUTPUT_DIR, f"scan_{timestamp}_p{idx+1}.jpg")
                 cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 95])
                 
                 # Scan with OpenAI
@@ -475,8 +439,5 @@ def serve_static(path):
 
 
 if __name__ == '__main__':
-    # Ensure output directories exist
-    os.makedirs(CROPPED_OUTPUT_DIR, exist_ok=True)
-    os.makedirs(LABELED_OUTPUT_DIR, exist_ok=True)
-    
+    os.makedirs(CAPTURE_OUTPUT_DIR, exist_ok=True)
     app.run(host=HOST, port=PORT, debug=DEBUG)

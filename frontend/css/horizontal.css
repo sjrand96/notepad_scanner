@@ -151,46 +151,6 @@ body {
     transform-origin: center center;
 }
 
-.preview-overlay {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    z-index: 10;
-}
-
-.marker-indicator {
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border: 2px solid rgba(59, 130, 246, 0.3);
-}
-
-.marker-indicator.has-markers {
-    border-color: var(--accent-success);
-    background: rgba(16, 185, 129, 0.2);
-}
-
-.marker-icon {
-    font-size: 1.8rem;
-}
-
-#marker-count {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--accent-success);
-}
-
-.marker-label {
-    font-size: 1.2rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
 /* Right: Controls (30%) */
 .controls-section {
     width: 55%;

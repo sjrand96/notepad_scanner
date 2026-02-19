@@ -23,7 +23,7 @@ Update your Flask app to serve different HTML based on a parameter, or just manu
 ## What Changed
 
 ### Files Modified:
-1. ✅ **frontend/js/app.js** - Added marker count display & dual layout support
+1. ✅ **frontend/js/app.js** - Dual layout support
    - Works with BOTH vertical and horizontal layouts
    - Auto-detects which layout elements exist
    - No breaking changes to existing functionality
@@ -45,7 +45,7 @@ Update your Flask app to serve different HTML based on a parameter, or just manu
 
 ### Visual Enhancements:
 1. **70/30 Split** - Camera gets 70% of screen (896px wide)
-2. **Real-time Marker Count** - Shows "📍 4 markers" when ArUco detected
+2. **Large preview** - Full camera preview
 3. **Large Page Counter** - Big number display (72px font)
 4. **4-Column Review Grid** - See more pages at once
 5. **Gradient Accents** - Modern, professional look
@@ -54,8 +54,7 @@ Update your Flask app to serve different HTML based on a parameter, or just manu
 ### UX Improvements:
 1. **Bigger Touch Targets** - 80-140px button heights
 2. **Better Visual Feedback** - Buttons scale, flash on press
-3. **Marker Indicator** - Green highlight when 4+ markers detected
-4. **Status Always Visible** - Page count and marker count always shown
+3. **Status Always Visible** - Page count always shown
 5. **Horizontal Workflow** - Natural left-to-right flow
 
 ---
@@ -70,8 +69,6 @@ Update your Flask app to serve different HTML based on a parameter, or just manu
 ### Capture Screen
 - [ ] Camera preview fills left 70% of screen
 - [ ] Page counter shows "0 PAGES" initially
-- [ ] Marker count updates in real-time
-- [ ] Marker indicator turns green when 4+ markers detected
 - [ ] Capture button is large and easy to press
 - [ ] Done button is accessible
 
@@ -130,9 +127,6 @@ mv index_vertical_backup.html index.html
 .user-button-horizontal[data-user-id="spencer"] {
     background: linear-gradient(135deg, #your-color1, #your-color2);
 }
-
-/* Hide marker count if not needed */
-.marker-indicator { display: none; }
 
 /* Change page counter size */
 .page-count-number { font-size: 6rem; }

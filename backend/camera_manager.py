@@ -1,29 +1,45 @@
 """
-Camera manager singleton for handling camera access.
+Camera manager singleton using Picamera2.
+
+Configuration follows experiments/picamera_control_references.py exactly:
+- Start NULL preview before configure (required by picamera2 API).
+- Single preview stream 2304x1296, XRGB8888, Sycc colour space.
+- Continuous autofocus after start.
+- Frames from capture_array() are RGB; we convert to BGR and rotate 90° CW
+  for consistency with the reference (saved frames are rotated the same way).
 """
 import cv2
 import threading
 import time
 import logging
-from backend.config import CAPTURE_WIDTH, CAPTURE_HEIGHT, PREVIEW_WIDTH
 
-# Set up logger
-logger = logging.getLogger('notepad_scanner')
+from backend.config import PREVIEW_WIDTH
+
+logger = logging.getLogger("notepad_scanner")
 if not logger.handlers:
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(message)s')
+    formatter = logging.Formatter("%(message)s")
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     logger.setLevel(logging.INFO)
 
+# Picamera2 and libcamera are used only here; import at runtime so non-Pi envs can still load the app
+def _picamera2_available():
+    try:
+        from picamera2 import Picamera2  # noqa: F401
+        from libcamera import Transform, ColorSpace, controls  # noqa: F401
+        return True
+    except Exception:
+        return False
+
 
 class CameraManager:
-    """Singleton camera manager for thread-safe camera access."""
-    
+    """Singleton camera manager using Picamera2 (configured per picamera_control_references.py)."""
+
     _instance = None
     _lock = threading.Lock()
-    
+
     def __new__(cls):
         if cls._instance is None:
             with cls._lock:
@@ -31,104 +47,126 @@ class CameraManager:
                     cls._instance = super(CameraManager, cls).__new__(cls)
                     cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self):
-        if self._initialized:
+        if getattr(self, "_initialized", False):
             return
-        
-        self.cap = None
+        self.picam2 = None
         self.is_initialized = False
-        self.capture_width = CAPTURE_WIDTH
-        self.capture_height = CAPTURE_HEIGHT
+        # After ROTATE_90_CW, frame shape is (height=2304, width=1296)
+        self.capture_width = 1296
+        self.capture_height = 2304
         self.preview_width = PREVIEW_WIDTH
         self._last_release_time = 0
         self._last_init_attempt = 0
-        self._init_cooldown = 2.0  # Seconds between initialization attempts
+        self._init_cooldown = 2.0
+        self._read_lock = threading.Lock()
         self._initialized = True
-    
+
     def initialize(self, force=False):
-        """Initialize camera.
-        
-        Args:
-            force: If True, reinitialize even if already initialized
-        """
+        """Initialize camera using the exact sequence from picamera_control_references.py."""
         if self.is_initialized and not force:
             return True
-        
-        # Enforce cooldown between initialization attempts to prevent flooding
+
+        if not _picamera2_available():
+            logger.warning("Picamera2 / libcamera not available (run on Raspberry Pi with picamera2 installed)")
+            return False
+
         current_time = time.time()
-        time_since_last_attempt = current_time - self._last_init_attempt
-        if time_since_last_attempt < self._init_cooldown and not force:
-            # Too soon to retry
+        if current_time - self._last_init_attempt < self._init_cooldown and not force:
             return False
-        
         self._last_init_attempt = current_time
-        
-        # If camera was recently released, wait a bit for hardware to reset
+
         time_since_release = current_time - self._last_release_time
-        if time_since_release < 0.5:  # Wait at least 500ms after release
+        if time_since_release < 0.5:
             time.sleep(0.5 - time_since_release)
-        
-        # Release existing camera if any
-        if self.cap is not None:
-            self.cap.release()
-            time.sleep(0.1)  # Brief pause for hardware cleanup
-        
-        # Try to open camera with reduced verbosity
-        import os
-        # Suppress OpenCV warnings temporarily
-        os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
-        
-        logger.info("📷 Initializing camera...")
-        self.cap = cv2.VideoCapture(0)
-        if not self.cap.isOpened():
+
+        if self.picam2 is not None:
+            try:
+                self.picam2.stop()
+            except Exception:
+                pass
+            self.picam2 = None
+            time.sleep(0.2)
+
+        from picamera2 import Picamera2, Preview
+        from libcamera import Transform, ColorSpace, controls
+
+        logger.info("📷 Initializing camera (Picamera2)...")
+
+        try:
+            self.picam2 = Picamera2()
+
+            # Required: start NULL preview before configure (per reference)
+            self.picam2.start_preview(Preview.NULL)
+
+            preview_sensor = {
+                "output_size": (2304, 1296),
+                "bit_depth": 10,
+            }
+            self.picam2.configure(
+                self.picam2.create_preview_configuration(
+                    main={
+                        "size": (2304, 1296),
+                        "format": "XRGB8888",
+                    },
+                    raw={},
+                    sensor=preview_sensor,
+                    colour_space=ColorSpace.Sycc(),
+                    transform=Transform(),
+                )
+            )
+
+            self.picam2.start()
+            self.picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous})
+
+            self.is_initialized = True
+            logger.info("✅ Camera initialized: 2304x1296 (Picamera2)")
+            return True
+        except Exception as e:
+            logger.warning("❌ Camera initialization failed: %s", e)
             self.is_initialized = False
-            logger.warning("❌ Camera initialization failed")
+            if self.picam2 is not None:
+                try:
+                    self.picam2.stop()
+                except Exception:
+                    pass
+                self.picam2 = None
             return False
-        
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.capture_width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.capture_height)
-        
-        actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        
-        self.capture_width = actual_width
-        self.capture_height = actual_height
-        self.is_initialized = True
-        
-        logger.info(f"✅ Camera initialized: {actual_width}x{actual_height}")
-        return True
-    
+
     def read_frame(self):
-        """Read a frame from the camera."""
-        if not self.is_initialized or self.cap is None:
-            return None
-        
-        ret, frame = self.cap.read()
-        if ret:
-            return frame
-        return None
-    
+        """Capture one frame: capture_array (RGB), convert to BGR, rotate 90° CW (per reference)."""
+        with self._read_lock:
+            if not self.is_initialized or self.picam2 is None:
+                return None
+            try:
+                im = self.picam2.capture_array()
+                if im is None or im.size == 0:
+                    return None
+                bgr = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+                bgr = cv2.rotate(bgr, cv2.ROTATE_90_CLOCKWISE)
+                return bgr
+            except Exception as e:
+                logger.warning("read_frame failed: %s", e)
+                return None
+
     def release(self):
-        """Release camera resources."""
-        if self.cap is not None:
-            logger.info("🔒 Releasing camera")
-            self.cap.release()
-            self.cap = None
-            self.is_initialized = False
-            self._last_release_time = time.time()
-    
+        """Stop camera and release resources."""
+        with self._read_lock:
+            if self.picam2 is not None:
+                logger.info("🔒 Releasing camera")
+                try:
+                    self.picam2.stop()
+                except Exception:
+                    pass
+                self.picam2 = None
+                self.is_initialized = False
+                self._last_release_time = time.time()
+
     def get_preview_size(self):
-        """Calculate preview dimensions maintaining aspect ratio."""
+        """Return (width, height) for resizing the frame for browser preview (aspect from rotated 1296x2304)."""
         if not self.is_initialized:
-            return (PREVIEW_WIDTH, int(PREVIEW_WIDTH * 3 / 4))  # Default 4:3
-        
-        camera_aspect = self.capture_width / self.capture_height
-        if self.capture_width >= self.capture_height:
-            preview_width = self.preview_width
-            preview_height = int(self.preview_width / camera_aspect)
-        else:
-            preview_height = self.preview_width
-            preview_width = int(self.preview_width * camera_aspect)
-        
-        return (preview_width, preview_height)
+            return (PREVIEW_WIDTH, int(PREVIEW_WIDTH * self.capture_height / self.capture_width))
+        aspect = self.capture_height / self.capture_width  # 2304/1296
+        preview_height = int(self.preview_width * aspect)
+        return (self.preview_width, preview_height)

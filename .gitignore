@@ -45,7 +45,7 @@ Thumbs.db
 
 # Project specific
 data/users.json
-aruco/outputs/
+data/captures/
 images/
 *.jpg
 *.png

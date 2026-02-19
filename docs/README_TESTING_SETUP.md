@@ -116,7 +116,6 @@ These are more complex and can be added later:
 Reusable test components:
 - `temp_dir` - Temporary directory for file operations
 - `sample_image` - Basic test image
-- `sample_image_with_aruco` - Image with ArUco markers
 - `temp_users_file` - Temporary user data file
 
 ### 2. **Mocking** (via `pytest-mock`)

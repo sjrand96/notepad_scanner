@@ -79,37 +79,6 @@ def sample_image():
 
 
 @pytest.fixture
-def sample_image_with_aruco():
-    """
-    Create a test image with ArUco markers at the corners.
-    
-    This is useful for testing ArUco detection and cropping functions.
-    Returns a 400x400 image with markers at corners.
-    """
-    # Create a white canvas
-    image = np.ones((400, 400, 3), dtype=np.uint8) * 255
-    
-    # Generate ArUco markers (IDs 0-3 for corners)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    marker_size = 50
-    
-    # Generate markers for each corner (IDs 0, 1, 2, 3)
-    positions = [
-        (10, 10),      # Top-left (ID 0)
-        (340, 10),     # Top-right (ID 1)
-        (10, 340),     # Bottom-left (ID 2)
-        (340, 340),    # Bottom-right (ID 3)
-    ]
-    
-    for marker_id, (x, y) in enumerate(positions):
-        marker = cv2.aruco.generateImageMarker(aruco_dict, marker_id, marker_size)
-        # Place marker on image
-        image[y:y+marker_size, x:x+marker_size] = cv2.cvtColor(marker, cv2.COLOR_GRAY2BGR)
-    
-    return image
-
-
-@pytest.fixture
 def temp_image_file(temp_dir, sample_image):
     """
     Create a temporary image file for testing.

@@ -70,7 +70,6 @@ def test_with_fixture(sample_image):
     Available fixtures:
     - temp_dir: Temporary directory
     - sample_image: 100x100 test image
-    - sample_image_with_aruco: Image with ArUco markers
     - temp_image_file: Saved image file
     - temp_users_file: Temporary users.json
     """

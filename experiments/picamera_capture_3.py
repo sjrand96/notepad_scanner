@@ -22,7 +22,7 @@ preview_config = picam2.create_preview_configuration(
     raw={},                         # let Picamera2 derive raw from sensor mode
     sensor=preview_sensor,
     colour_space=ColorSpace.Sycc(),
-    transform=Transform(vflip=True, transpose=True),  # 90° clockwise   
+    transform=Transform(),  
 )
 
 print('rotating!')

@@ -43,10 +43,10 @@
 │                                  │  │       42        │    │
 │                                  │  │      PAGES      │    │
 │         CAMERA PREVIEW           │  └─────────────────┘    │
-│        (ArUco detected)          │                         │
+│                                  │                         │
 │                                  │                         │
 │                                  │  ┌─────────────────┐    │
-│      📍 4 markers (overlay)      │  │       📸        │    │
+│                                  │  │       📸        │    │
 │                                  │  │    CAPTURE      │    │
 │                                  │  └─────────────────┘    │
 │                                  │                         │
@@ -58,13 +58,11 @@
      896px (70%)                      384px (30%)
 ```
 **Features:**
-- **Left (70%):** Full camera preview with ArUco marker overlay
+- **Left (70%):** Full camera preview
 - **Right (30%):** Control panel with:
   - Large page counter at top
-  - Marker count indicator (shows when markers detected)
   - Capture button (140px tall, blue gradient)
   - Done button (80px tall, green gradient)
-- Real-time marker detection indicator
 - Visual feedback on capture (button flash)
 
 ---
@@ -158,14 +156,13 @@
 ## ✨ Key Features
 
 1. **70/30 Split Layout** - Camera preview dominates, controls accessible
-2. **Real-time Marker Count** - Shows when ArUco markers detected
-3. **Large Touch Targets** - All buttons 60px+ for easy touch
-4. **Visual Feedback** - Buttons scale, flash, and respond to touch
+2. **Large Touch Targets** - All buttons 60px+ for easy touch
+3. **Visual Feedback** - Buttons scale, flash, and respond to touch
 5. **Gradient Accents** - Modern, professional color scheme
 6. **No Cursor** - Hidden for clean touchscreen experience
 7. **Fixed Dimensions** - 1280x720px, no scaling issues
 8. **Horizontal Grid** - 4 columns for review screen
-9. **Status Indicators** - Page count, marker count always visible
+9. **Status Indicators** - Page count always visible
 10. **Smooth Animations** - Professional feel without distraction
 
 ---

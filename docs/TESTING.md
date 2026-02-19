@@ -173,7 +173,6 @@ Available fixtures in this project:
 - `sample_users`: Dictionary of test user data
 - `temp_users_file`: Temporary users.json file
 - `sample_image`: Simple test image (100x100)
-- `sample_image_with_aruco`: Test image with ArUco markers
 - `temp_image_file`: Temporary image file saved to disk
 - `mock_env_vars`: Mock environment variables
 

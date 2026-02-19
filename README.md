@@ -1,15 +1,15 @@
 ## Notepad Scanner
-Digitize handwritten notes into structured Notion pages using a camera, ArUco markers, and OpenAI OCR.
+Digitize handwritten notes into structured Notion pages using a camera, fixed region-of-interest (ROI) cropping, and OpenAI OCR.
 
 ### What it does
-- **Live camera preview** in the browser with ArUco markers to frame each page.
-- **Capture & crop pages** automatically based on the markers.
+- **Live camera preview** in the browser.
+- **Capture & crop pages** to a fixed region of interest (camera is fixed; ROI is configurable).
 - **OCR with OpenAI** using a prompt tuned for handwritten notes.
 - **Create Notion pages** (with optional source image) in a per‑user Notion database.
 
 ### Prerequisites
 - **Python 3.10+** (tested on Raspberry Pi and Linux)
-- A **camera** accessible to OpenCV
+- A **camera** (OpenCV for now; picamera2 integration planned)
 - A **Notion integration** with access to your target database
 - An **OpenAI API key**
 
@@ -68,7 +68,7 @@ The backend starts on `http://127.0.0.1:5000` by default.
 ### 5. Open the frontend
 Open `frontend/index.html` in a browser (or serve `frontend/` with any static file server). The UI will:
 - Ask you to select a user.
-- Show live camera preview with markers.
+- Show live camera preview.
 - Let you capture, review, and send pages to Notion.
 
 ### 6. Notes and troubleshooting

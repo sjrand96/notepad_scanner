@@ -35,7 +35,7 @@ Following Notion's documentation, the implementation uses:
 
 The image upload functionality automatically works with:
 - **Direct scanning**: `scan_to_notion.py` - scan an image and create Notion page
-- **ArUco workflow**: `capture_scan_to_notion.py` - capture with ArUco markers, crop, scan, and upload
+- **App workflow**: Capture frames, crop to fixed ROI, scan, and upload to Notion
 
 ### Testing
 

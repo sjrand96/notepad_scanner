@@ -7,46 +7,31 @@ They are marked as 'integration' and may be slower than unit tests.
 import pytest
 import os
 from unittest.mock import Mock, patch
-from backend.image_processor import detect_aruco_detailed, crop_to_aruco_boundaries
-import cv2
+from backend.image_processor import crop_to_fixed_roi
 
 
 @pytest.mark.integration
-class TestArucoWorkflow:
-    """Test the complete ArUco detection and cropping workflow."""
-    
-    def test_detect_and_crop_workflow(self, sample_image_with_aruco):
-        """
-        Integration test: detect markers and crop in one workflow.
-        
-        This simulates what happens when a user captures an image.
-        """
-        # Setup ArUco detection
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        try:
-            aruco_params = cv2.aruco.DetectorParameters()
-        except AttributeError:
-            aruco_params = cv2.aruco.DetectorParameters_create()
-        
-        # Step 1: Detect markers
-        corners, ids, labeled_image, all_corners = detect_aruco_detailed(
-            sample_image_with_aruco, aruco_dict, aruco_params
-        )
-        
-        assert ids is not None, "Step 1: Should detect markers"
-        assert len(ids) == 4, "Step 1: Should detect 4 markers"
-        
-        # Step 2: Crop to boundaries
-        cropped = crop_to_aruco_boundaries(
-            sample_image_with_aruco, corners, ids, margin_factor=0
-        )
-        
-        assert cropped is not None, "Step 2: Should successfully crop"
-        assert cropped.shape[0] < sample_image_with_aruco.shape[0], "Step 2: Cropped should be smaller"
-        
-        # Verify the cropped image is valid and can be saved
-        assert cropped.size > 0, "Cropped image should have content"
-        assert len(cropped.shape) == 3, "Should be a 3-channel image"
+class TestFixedRoiWorkflow:
+    """Test fixed-ROI crop workflow (simulates capture -> crop -> ready for OCR)."""
+
+    def test_crop_full_frame_then_roi(self, sample_image):
+        """Capture-sized frame cropped with ROI 0,0,0,0 gives full frame."""
+        img = sample_image
+        if img.shape[0] < 10 or img.shape[1] < 10:
+            img = __import__("numpy").zeros((100, 100, 3), dtype=__import__("numpy").uint8)
+        cropped = crop_to_fixed_roi(img, 0, 0, 0, 0)
+        assert cropped is not None
+        assert cropped.size > 0
+        assert len(cropped.shape) == 3
+
+    def test_crop_subregion(self, sample_image):
+        """Cropped subregion has correct shape and is contiguous."""
+        import numpy as np
+        img = np.zeros((200, 200, 3), dtype=np.uint8)
+        cropped = crop_to_fixed_roi(img, 50, 50, 100, 80)
+        assert cropped is not None
+        assert cropped.shape == (80, 100, 3)
+        assert cropped.size > 0
 
 
 @pytest.mark.integration
