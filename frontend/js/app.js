@@ -131,6 +131,8 @@ class App {
 
     async done() {
         if (this.capturedCount === 0) {
+            this.stopPreview();
+            await this.endSession();
             this.showError('Please capture at least one page');
             return;
         }

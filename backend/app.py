@@ -418,18 +418,17 @@ def api_process():
 @app.route('/api/session/<session_id>', methods=['DELETE'])
 def api_end_session(session_id):
     """End a session and release resources."""
+    logger.info("🔚 Session ended (releasing camera)")
     session = get_session(session_id)
     if session:
         clear_session(session_id)
-    
+
     # Remove from processing sessions if present
     with processing_lock:
         processing_sessions.discard(session_id)
-    
+
     camera = CameraManager()
     camera.release()
-    
-    logger.info("🔚 Session ended")
     return jsonify({"success": True})
 
 

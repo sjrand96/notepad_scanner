@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Notepad Scanner</title>
+    <title>Scanner</title>
     <link rel="stylesheet" href="css/horizontal.css">
 </head>
 <body>
-    <!-- User Selection Screen -->
+    <!-- User Selection Screen: full-bleed picture buttons -->
     <div id="user-selection-screen" class="screen active">
         <div class="user-selection-container">
-            <h1 class="main-title">NOTEPAD SCANNER</h1>
-            <div class="user-buttons-horizontal">
-                <button class="user-button user-button-horizontal" data-user-id="spencer">
-                    <div class="user-icon">👤</div>
-                    <span class="user-name">Spencer</span>
-                </button>
-                <button class="user-button user-button-horizontal" data-user-id="celeste">
-                    <div class="user-icon">👤</div>
-                    <span class="user-name">Celeste</span>
-                </button>
-            </div>
+            <button class="user-button user-picture-button" data-user-id="spencer" type="button">
+                <img class="user-picture-img" src="images/SAR_Bird.png" alt="">
+                <span class="user-picture-veil" aria-hidden="true"></span>
+                <span class="user-picture-gradient"></span>
+                <span class="user-picture-name">Spencer</span>
+            </button>
+            <button class="user-button user-picture-button" data-user-id="celeste" type="button">
+                <img class="user-picture-img" src="images/CB_Bird.png" alt="">
+                <span class="user-picture-veil" aria-hidden="true"></span>
+                <span class="user-picture-gradient"></span>
+                <span class="user-picture-name">Celeste</span>
+            </button>
         </div>
     </div>
 

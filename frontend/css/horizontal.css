@@ -43,74 +43,84 @@ body {
     display: flex;
 }
 
-/* ============= USER SELECTION SCREEN ============= */
+/* ============= USER SELECTION SCREEN (1280×720 picture buttons) ============= */
 .user-selection-container {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    flex-direction: row;
     width: 100%;
     height: 100%;
-    gap: 60px;
+    gap: 24px;
+    padding: 28px;
+    box-sizing: border-box;
 }
 
-.main-title {
-    font-size: 3.5rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, #4ade80, #3b82f6, #a855f7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.user-buttons-horizontal {
-    display: flex;
-    gap: 40px;
-    justify-content: center;
-}
-
-.user-button-horizontal {
-    width: 320px;
-    height: 240px;
-    background: var(--bg-card);
-    border: 3px solid #333;
-    border-radius: 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
+.user-picture-button {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+    border: none;
+    border-radius: 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
     touch-action: manipulation;
+    padding: 0;
+    background: var(--bg-card);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+/* No inset border (::before) here: inset box-shadow at rounded corners often causes white artifacts in browsers. */
+
+.user-picture-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-.user-button-horizontal[data-user-id="spencer"] {
-    background: var(--accent-spencer);
-    border-color: rgba(255, 255, 255, 0.2);
+.user-picture-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: inherit;
 }
 
-.user-button-horizontal[data-user-id="celeste"] {
-    background: var(--accent-celeste);
-    border-color: rgba(255, 255, 255, 0.2);
+.user-picture-button[data-user-id="spencer"] .user-picture-img {
+    transform: scaleX(-1);
 }
 
-.user-button-horizontal:active {
-    transform: scale(0.96);
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+.user-picture-veil {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0.20);
+    pointer-events: none;
 }
 
-.user-icon {
-    font-size: 5rem;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+.user-picture-gradient {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.88) 0%,
+        rgba(0, 0, 0, 0.4) 45%,
+        transparent 100%
+    );
+    pointer-events: none;
 }
 
-.user-name {
-    font-size: 2.5rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.user-picture-name {
+    position: absolute;
+    bottom: 36px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: clamp(2.2rem, 4.5vw, 3.25rem);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+    z-index: 1;
 }
 
 /* ============= CAPTURE SCREEN ============= */

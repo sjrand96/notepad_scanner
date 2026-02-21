@@ -84,10 +84,11 @@ class CameraManager:
         if self.picam2 is not None:
             try:
                 self.picam2.stop()
+                self.picam2.close()
             except Exception:
                 pass
             self.picam2 = None
-            time.sleep(0.2)
+            time.sleep(0.5)
 
         from picamera2 import Picamera2, Preview
         from libcamera import Transform, ColorSpace, controls
@@ -129,6 +130,7 @@ class CameraManager:
             if self.picam2 is not None:
                 try:
                     self.picam2.stop()
+                    self.picam2.close()
                 except Exception:
                     pass
                 self.picam2 = None
@@ -151,14 +153,16 @@ class CameraManager:
                 return None
 
     def release(self):
-        """Stop camera and release resources."""
+        """Stop camera and release resources. Must call close() so libcamera returns to Available state for next init."""
         with self._read_lock:
             if self.picam2 is not None:
                 logger.info("🔒 Releasing camera")
                 try:
                     self.picam2.stop()
-                except Exception:
-                    pass
+                    self.picam2.close()
+                    logger.info("Camera closed")
+                except Exception as e:
+                    logger.warning("Release error: %s", e)
                 self.picam2 = None
                 self.is_initialized = False
                 self._last_release_time = time.time()

@@ -46,8 +46,6 @@ Thumbs.db
 # Project specific
 data/users.json
 data/captures/
-images/
 *.jpg
-*.png
 *.jpeg
 notebook_scanner_venv/*
