@@ -55,7 +55,8 @@ def main():
         if capture_interval > 0 and frame_count > 0 and frame_count % capture_interval == 0:
             ts = time.strftime("%Y%m%d_%H%M%S")
             path = out_dir / f"{ts}_frame_{frame_count:06d}.png"
-            bgr = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+            # XRGB8888 is BGRX in memory (picamera2); use BGRA2BGR
+            bgr = cv2.cvtColor(im, cv2.COLOR_BGRA2BGR)
             bgr = cv2.rotate(bgr, cv2.ROTATE_90_CLOCKWISE)
             cv2.imwrite(str(path), bgr)
         frame_count += 1

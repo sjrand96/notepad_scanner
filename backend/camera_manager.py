@@ -5,8 +5,9 @@ Configuration follows experiments/picamera_control_references.py exactly:
 - Start NULL preview before configure (required by picamera2 API).
 - Single preview stream 2304x1296, XRGB8888, Sycc colour space.
 - Continuous autofocus after start.
-- Frames from capture_array() are RGB; we convert to BGR and rotate 90° CW
-  for consistency with the reference (saved frames are rotated the same way).
+- Frames from capture_array() are 4-channel; picamera2 stores XRGB8888 as BGRX in memory
+  (see request.py FORMAT_TABLE and _get_pil_mode: "XRGB8888" -> "BGRX"). We convert with
+  BGRA2BGR to get 3-channel BGR for OpenCV, then rotate 90° CW.
 """
 import cv2
 import threading
@@ -137,7 +138,7 @@ class CameraManager:
             return False
 
     def read_frame(self):
-        """Capture one frame: capture_array (RGB), convert to BGR, rotate 90° CW (per reference)."""
+        """Capture one frame: capture_array (BGRX per picamera2), convert to BGR, rotate 90° CW."""
         with self._read_lock:
             if not self.is_initialized or self.picam2 is None:
                 return None
@@ -145,7 +146,8 @@ class CameraManager:
                 im = self.picam2.capture_array()
                 if im is None or im.size == 0:
                     return None
-                bgr = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+                # XRGB8888 is delivered as BGRX in memory; use BGRA2BGR (not RGB2BGR) to avoid red/blue swap
+                bgr = cv2.cvtColor(im, cv2.COLOR_BGRA2BGR)
                 bgr = cv2.rotate(bgr, cv2.ROTATE_90_CLOCKWISE)
                 return bgr
             except Exception as e:

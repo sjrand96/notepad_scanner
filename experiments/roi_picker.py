@@ -58,7 +58,8 @@ def capture_one_frame():
 
     im = picam2.capture_array()
     picam2.stop()
-    bgr = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+    # XRGB8888 is delivered as BGRX in memory (picamera2); use BGRA2BGR for correct colors
+    bgr = cv2.cvtColor(im, cv2.COLOR_BGRA2BGR)
     bgr = cv2.rotate(bgr, cv2.ROTATE_90_CLOCKWISE)
     return bgr
 

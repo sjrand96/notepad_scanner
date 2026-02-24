@@ -39,7 +39,8 @@ while True:
     im = picam2.capture_array()
     ts = time.strftime("%Y%m%d_%H%M%S")
     path = out_dir + f"{ts}_frame_{frame_count:06d}.png"
-    bgr = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+    # XRGB8888 is delivered as BGRX in memory (picamera2 request.py); use BGRA2BGR
+    bgr = cv2.cvtColor(im, cv2.COLOR_BGRA2BGR)
     bgr = cv2.rotate(bgr, cv2.ROTATE_90_CLOCKWISE)
     cv2.imwrite(str(path), bgr)
     time.sleep(0.25)
