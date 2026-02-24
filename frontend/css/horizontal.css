@@ -64,7 +64,8 @@ body {
     cursor: pointer;
     touch-action: manipulation;
     padding: 0;
-    background: var(--bg-card);
+    /* Match gradient bottom so no white sliver shows at rounded corners */
+    background: #000;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 /* No inset border (::before) here: inset box-shadow at rounded corners often causes white artifacts in browsers. */
@@ -81,25 +82,30 @@ body {
     height: 100%;
     object-fit: cover;
     display: block;
-    border-radius: inherit;
+    border-radius: 16px;
 }
 
-.user-picture-button[data-user-id="spencer"] .user-picture-img {
+/* .user-picture-button[data-user-id="spencer"] .user-picture-img {
+    transform: scaleX(-1);
+} */
+
+.user-picture-button[data-user-id="celeste"] .user-picture-img {
     transform: scaleX(-1);
 }
 
 .user-picture-veil {
     position: absolute;
     inset: 0;
-    border-radius: inherit;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.20);
     pointer-events: none;
 }
 
+/* Gradient bleeds 1px so rounded corners have no white sliver; parent overflow clips */
 .user-picture-gradient {
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
+    inset: -1px;
+    border-radius: 16px;
     background: linear-gradient(
         to top,
         rgba(0, 0, 0, 0.88) 0%,
