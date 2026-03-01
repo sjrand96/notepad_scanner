@@ -92,3 +92,7 @@ This starts the Flask backend and opens the app in your default browser. Make su
 - Camera performance and preview quality can be tuned via env vars documented in `backend/config.py` (e.g. `PREVIEW_JPEG_QUALITY`, `PREVIEW_RESIZE_INTERPOLATION`).
 - Run the app only on localhost (default). If you expose it on a network or the internet, add authentication or restrict access. 
 - Create a dedicated [Notion integration](https://www.notion.so/my-integrations) as part of your setup and grant it read/write access only to the database you use for scans—that way a leaked or misused token can’t touch other Notion pages in your workspace.
+
+### 8. License
+
+This project is licensed under the [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html) (AGPL-3.0). See [LICENSE](LICENSE) in the repository root for the full text.
