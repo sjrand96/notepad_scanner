@@ -4,7 +4,7 @@
 
 ```bash
 # Activate your virtual environment
-source notebook_scanner_venv/bin/activate
+source .venv/bin/activate
 
 # Run all tests
 pytest -v
@@ -25,13 +25,13 @@ pytest -v
 pytest tests/test_image_processor.py
 
 # Run a specific test class
-pytest tests/test_image_processor.py::TestCalculateMarkerWidth
+pytest tests/test_image_processor.py::TestCropToFixedRoi
 
 # Run a specific test function
-pytest tests/test_image_processor.py::TestCalculateMarkerWidth::test_single_marker_width
+pytest tests/test_image_processor.py::TestCropToFixedRoi::test_crop_rectangle
 
 # Run tests matching a name pattern
-pytest -k "marker"  # Runs tests with "marker" in the name
+pytest -k "crop"  # Runs tests with "crop" in the name
 ```
 
 ### Test Categories (Markers)
@@ -92,7 +92,7 @@ After running `pytest --cov=backend --cov-report=html`, open `htmlcov/index.html
 ```
 tests/
 ├── conftest.py                 # Shared fixtures (test helpers)
-├── test_image_processor.py     # Unit tests for ArUco detection/cropping
+├── test_image_processor.py     # Unit tests for fixed-ROI cropping
 ├── test_user_manager.py        # Unit tests for user management
 ├── test_notion_client.py       # Unit tests for Notion API (with mocking)
 └── test_integration.py         # Integration tests (multiple components)

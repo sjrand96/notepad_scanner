@@ -87,6 +87,8 @@ From the project directory:
 
 This starts the Flask backend and opens the app in your default browser. Make sure to enter full screen within chrome to get the UI to display properly (F11 to enter/exit). Press **Ctrl+C** in the terminal when you’re done to stop the server.
 
-### 7. Notes and troubleshooting
+### 7. Security, Notes,  and troubleshooting
 - If you see JSON errors about a user configuration, check `data/users.json` and your `.env` values.
 - Camera performance and preview quality can be tuned via env vars documented in `backend/config.py` (e.g. `PREVIEW_JPEG_QUALITY`, `PREVIEW_RESIZE_INTERPOLATION`).
+- Run the app only on localhost (default). If you expose it on a network or the internet, add authentication or restrict access. 
+- Create a dedicated [Notion integration](https://www.notion.so/my-integrations) as part of your setup and grant it read/write access only to the database you use for scans—that way a leaked or misused token can’t touch other Notion pages in your workspace.

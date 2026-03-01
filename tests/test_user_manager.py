@@ -17,9 +17,11 @@ class TestUserManager:
     
     def test_load_users_creates_default_file(self, temp_dir, monkeypatch):
         """Test that load_users creates a default users file if it doesn't exist."""
-        # Set up environment variables
+        # Set up environment variables (both users need token and database ID per schema)
         monkeypatch.setenv("SPENCER_NOTION_TOKEN", "test_token_spencer")
         monkeypatch.setenv("SPENCER_NOTION_DATABASE_ID", "test_db_spencer")
+        monkeypatch.setenv("CELESTE_NOTION_TOKEN", "test_token_celeste")
+        monkeypatch.setenv("CELESTE_NOTION_DATABASE_ID", "test_db_celeste")
         
         # Mock the paths to use our temp directory
         users_file = os.path.join(temp_dir, "users.json")

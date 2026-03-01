@@ -62,10 +62,10 @@ pytest tests/test_image_processor.py
 
 ```bash
 # Run a specific class
-pytest tests/test_image_processor.py::TestCalculateMarkerWidth
+pytest tests/test_image_processor.py::TestCropToFixedRoi
 
 # Run a specific test function
-pytest tests/test_image_processor.py::TestCalculateMarkerWidth::test_single_marker_width
+pytest tests/test_image_processor.py::TestCropToFixedRoi::test_crop_rectangle
 ```
 
 ### Run Tests by Marker
@@ -273,12 +273,12 @@ def test_1():
     pass
 
 # ✅ Good
-def test_calculate_marker_width_returns_zero_for_empty_list():
+def test_crop_to_fixed_roi_returns_none_for_invalid_input():
     pass
 
 # ✅ Also good (using class grouping)
-class TestCalculateMarkerWidth:
-    def test_returns_zero_for_empty_list(self):
+class TestCropToFixedRoi:
+    def test_returns_none_for_none_input(self):
         pass
 ```
 
